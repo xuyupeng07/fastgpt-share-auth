@@ -2,19 +2,19 @@ import mysql from 'mysql2/promise';
 
 // 数据库配置
 const dbConfig = {
-  host: 'dbconn.sealoshzh.site',
-  port: 33640,
-  user: 'root',
-  password: 'zkvmj7b8',
-  database: 'noLogin'
+  host: process.env.DB_HOST || 'localhost',
+  port: parseInt(process.env.DB_PORT || '3306'),
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || '',
+  database: process.env.DB_NAME || 'fastgpt'
 };
 
 // 创建数据库连接池
 const pool = mysql.createPool({
   ...dbConfig,
   waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
+  connectionLimit: parseInt(process.env.DB_CONNECTION_LIMIT || '10'),
+  queueLimit: parseInt(process.env.DB_QUEUE_LIMIT || '0')
 });
 
 // 导出pool供其他模块使用
@@ -38,6 +38,17 @@ export async function authenticateUser(username: string, password: string) {
     return (rows as any[]).length > 0 ? (rows as any[])[0] : null;
   } catch (error) {
     console.error('用户验证失败:', error);
+    return null;
+  }
+}
+
+// 根据用户ID查找用户
+export async function getUserById(userId: number) {
+  try {
+    const [rows] = await pool.execute('SELECT id, username, token, uid, email, balance, status, is_admin, created_at FROM users WHERE id = ?', [userId]);
+    return (rows as any[]).length > 0 ? (rows as any[])[0] : null;
+  } catch (error) {
+    console.error('根据ID查询用户失败:', error);
     return null;
   }
 }
@@ -67,10 +78,21 @@ export async function updateUserStatus(userId: number, status: 'active' | 'inact
   }
 }
 
-// 更新用户余额
+// 更新用户余额（通过token）
 export async function updateUserBalance(token: string, newBalance: number) {
   try {
     await pool.execute('UPDATE users SET balance = ?, updated_at = NOW() WHERE token = ?', [newBalance, token]);
+    return true;
+  } catch (error) {
+    console.error('更新用户余额失败:', error);
+    return false;
+  }
+}
+
+// 更新用户余额（通过用户ID）
+export async function updateUserBalanceById(userId: number, newBalance: number) {
+  try {
+    await pool.execute('UPDATE users SET balance = ?, updated_at = NOW() WHERE id = ?', [newBalance, userId]);
     return true;
   } catch (error) {
     console.error('更新用户余额失败:', error);

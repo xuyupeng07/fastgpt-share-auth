@@ -12,7 +12,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@types/jsonwebtoken": "^9.0.10",
     "@workspace/ui": "workspace:*",
+    "axios": "^1.11.0",
+    "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.475.0",
     "mysql2": "^3.6.5",
     "next": "^15.4.5",

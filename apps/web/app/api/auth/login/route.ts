@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authenticateUser } from '@/lib/db';
+import { generateSecureToken } from '@/lib/jwt';
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,10 +12,22 @@ export async function POST(request: NextRequest) {
     
     if (user) {
       console.log(`用户 ${username} 登录成功`);
+      
+      // 生成安全的JWT token
+      const jwtToken = generateSecureToken(
+        user.id,
+        user.username,
+        user.uid,
+        undefined, // shareId可选
+        ['read', 'chat'] // 默认权限
+      );
+      
+      console.log(`为用户 ${username} 生成JWT token`);
+      
       return NextResponse.json({
         success: true,
         message: '登录成功',
-        authToken: user.token,
+        authToken: jwtToken, // 返回JWT token而不是明文token
         data: {
           uid: user.uid,
           username: user.username,

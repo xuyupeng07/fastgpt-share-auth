@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { findUserByToken, updateUserBalance, addConsumptionRecord } from "@/lib/db";
+import { findUserByToken, updateUserBalance, updateUserBalanceById, addConsumptionRecord, getUserById } from "@/lib/db";
+import { validateToken } from "@/lib/jwt";
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,10 +15,19 @@ export async function POST(request: NextRequest) {
 
     console.log('收到对话结束上报:', { token });
 
-    // 验证用户token
-    const user = await findUserByToken(token);
+    // 验证JWT token
+    const jwtValidation = await validateToken(token);
+    let user = null;
+    
+    if (jwtValidation.success && jwtValidation.data) {
+      // JWT token验证成功，通过用户ID获取用户信息
+      user = await getUserById(jwtValidation.data.userId);
+    } else {
+      // JWT验证失败，尝试明文token验证（向后兼容）
+      user = await findUserByToken(token);
+    }
+    
     if (!user) {
-      console.log(`Token ${token} 无效`);
       return NextResponse.json(
         { success: false, message: '身份验证失败，无效的token' }
       );

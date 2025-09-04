@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { findUserByToken } from "@/lib/db";
+import { findUserByToken, getUserById } from "@/lib/db";
+import { validateToken } from "@/lib/jwt";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { token, question } = body;
+    const { token, question, shareId } = body;
 
     if (!token) {
       return NextResponse.json(
@@ -14,12 +15,21 @@ export async function POST(request: NextRequest) {
 
     console.log('收到对话开始请求:', { token, question });
 
-    // 验证用户token
-    const user = await findUserByToken(token);
-    if (!user) {
-      console.log(`Token ${token} 无效`);
+    // 验证JWT token (shareId可选)
+    const validationResult = await validateToken(token, shareId);
+    if (!validationResult.success || !validationResult.data) {
       return NextResponse.json(
-        { success: false, message: '身份验证失败，无效的token' }
+        { success: false, message: validationResult.message || '身份验证失败，无效的token' },
+        { status: 401 }
+      );
+    }
+    
+    // 从JWT token中获取用户信息
+    const user = await getUserById(validationResult.data.userId);
+    if (!user) {
+      return NextResponse.json(
+        { success: false, message: '用户不存在' },
+        { status: 401 }
       );
     }
 
