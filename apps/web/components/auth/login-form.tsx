@@ -53,8 +53,12 @@ export function LoginForm() {
         localStorage.setItem("authToken", data.authToken)
         localStorage.setItem("userInfo", JSON.stringify(data.data))
         
+        // 构建FastGPT分享链接并拼接token
+        const fastgptBaseUrl = process.env.NEXT_PUBLIC_FASTGPT_SHARE_URL || 'https://cloud.fastgpt.io/chat/share?shareId=yzRbRsO1vdKbfUeOhWoIv8LY'
+        const fastgptUrl = `${fastgptBaseUrl}&authToken=${data.authToken}`
+        
         setTimeout(() => {
-          window.location.href = "/admin"
+          window.location.href = fastgptUrl
         }, 1000)
       } else {
         showAlert(data.message || "登录失败")

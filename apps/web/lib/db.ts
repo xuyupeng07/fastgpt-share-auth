@@ -17,6 +17,9 @@ const pool = mysql.createPool({
   queueLimit: 0
 });
 
+// 导出pool供其他模块使用
+export { pool };
+
 // 根据token查找用户
 export async function findUserByToken(token: string) {
   try {

@@ -1,15 +1,28 @@
-import { Button } from "@workspace/ui/components/button"
+"use client"
+
+import { LoginForm } from "@/components/auth/login-form"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@workspace/ui/components/card"
 import { ThemeToggle } from "@/components/theme-toggle"
 
-export default function Page() {
+export default function LoginPage() {
   return (
-    <div className="flex items-center justify-center min-h-svh">
-      <div className="flex flex-col items-center justify-center gap-4">
-        <div className="absolute top-4 right-4">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <div className="w-full max-w-md space-y-6">
+        <div className="flex justify-end">
           <ThemeToggle />
         </div>
-        <h1 className="text-2xl font-bold">Hello World</h1>
-        <Button size="sm">Button</Button>
+        
+        <Card>
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl font-bold">FastGPT</CardTitle>
+            <CardDescription>
+              欢迎回来，请登录您的账户
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <LoginForm />
+          </CardContent>
+        </Card>
       </div>
     </div>
   )
