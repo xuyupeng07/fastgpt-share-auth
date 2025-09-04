@@ -13,10 +13,16 @@ export async function POST(request: NextRequest) {
       console.log(`用户 ${username} 登录成功`);
       return NextResponse.json({
         success: true,
+        message: '登录成功',
         authToken: user.token,
         data: {
           uid: user.uid,
-          username: user.username
+          username: user.username,
+          balance: user.balance || 0,
+          role: user.is_admin ? 'admin' : 'user',
+          email: user.email || '',
+          status: user.status || 'active',
+          is_admin: user.is_admin
         }
       });
     } else {

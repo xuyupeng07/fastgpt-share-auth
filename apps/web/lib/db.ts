@@ -34,7 +34,7 @@ export async function findUserByToken(token: string) {
 // 根据用户名和密码验证用户
 export async function authenticateUser(username: string, password: string) {
   try {
-    const [rows] = await pool.execute('SELECT * FROM users WHERE username = ? AND password = ?', [username, password]);
+    const [rows] = await pool.execute('SELECT id, username, token, uid, email, balance, status, is_admin, created_at FROM users WHERE username = ? AND password = ?', [username, password]);
     return (rows as any[]).length > 0 ? (rows as any[])[0] : null;
   } catch (error) {
     console.error('用户验证失败:', error);
@@ -45,7 +45,7 @@ export async function authenticateUser(username: string, password: string) {
 // 获取所有用户
 export async function getAllUsers() {
   try {
-    const [rows] = await pool.execute('SELECT id, username, token, uid, email, balance, status, created_at FROM users ORDER BY created_at DESC');
+    const [rows] = await pool.execute('SELECT id, username, token, uid, email, balance, status, is_admin, created_at FROM users ORDER BY created_at DESC');
     return rows;
   } catch (error) {
     console.error('获取用户列表失败:', error);
@@ -125,6 +125,23 @@ export async function getUserConsumptionRecords(token: string) {
   }
 }
 
+// 根据用户名获取消费记录
+export async function getUserConsumptionRecordsByUsername(username: string) {
+  try {
+    const [rows] = await pool.execute(`
+      SELECT cr.*, u.username 
+      FROM consumption_records cr 
+      LEFT JOIN users u ON cr.user_id = u.id 
+      WHERE u.username = ? 
+      ORDER BY cr.created_at DESC
+    `, [username]);
+    return rows;
+  } catch (error) {
+    console.error('根据用户名获取消费记录失败:', error);
+    return [];
+  }
+}
+
 // 获取消费记录详情
 export async function getConsumptionRecordDetail(id: number) {
   try {
@@ -187,5 +204,84 @@ export async function getRechargeRecordsByToken(token: string) {
     return [];
   }
 }
+
+// 工作流相关操作
+
+// 获取所有工作流
+export async function getAllWorkflows() {
+  try {
+    const [rows] = await pool.execute('SELECT * FROM workflows ORDER BY created_at DESC');
+    return rows;
+  } catch (error) {
+    console.error('获取工作流列表失败:', error);
+    return [];
+  }
+}
+
+// 根据ID获取工作流
+export async function getWorkflowById(id: number) {
+  try {
+    const [rows] = await pool.execute('SELECT * FROM workflows WHERE id = ?', [id]);
+    return (rows as any[]).length > 0 ? (rows as any[])[0] : null;
+  } catch (error) {
+    console.error('获取工作流详情失败:', error);
+    return null;
+  }
+}
+
+// 创建工作流
+export async function createWorkflow(name: string, description: string, noLoginUrl: string, status: 'active' | 'inactive' = 'active') {
+  try {
+    const [result] = await pool.execute(
+      'INSERT INTO workflows (name, description, no_login_url, status) VALUES (?, ?, ?, ?)',
+      [name, description, noLoginUrl, status]
+    );
+    return result;
+  } catch (error) {
+    console.error('创建工作流失败:', error);
+    throw error;
+  }
+}
+
+// 更新工作流
+export async function updateWorkflow(id: number, name: string, description: string, noLoginUrl: string, status: 'active' | 'inactive') {
+  try {
+    const [result] = await pool.execute(
+      'UPDATE workflows SET name = ?, description = ?, no_login_url = ?, status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [name, description, noLoginUrl, status, id]
+    );
+    return result;
+  } catch (error) {
+    console.error('更新工作流失败:', error);
+    throw error;
+  }
+}
+
+// 删除工作流
+export async function deleteWorkflow(id: number) {
+  try {
+    const [result] = await pool.execute('DELETE FROM workflows WHERE id = ?', [id]);
+    return result;
+  } catch (error) {
+    console.error('删除工作流失败:', error);
+    throw error;
+  }
+}
+
+// 更新工作流状态
+export async function updateWorkflowStatus(id: number, status: 'active' | 'inactive') {
+  try {
+    const [result] = await pool.execute(
+      'UPDATE workflows SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [status, id]
+    );
+    return result;
+  } catch (error) {
+    console.error('更新工作流状态失败:', error);
+    throw error;
+  }
+}
+
+
 
 export default pool;

@@ -5,7 +5,6 @@ import { Button } from "@workspace/ui/components/button"
 import { Input } from "@workspace/ui/components/input"
 import { Label } from "@workspace/ui/components/label"
 import { AlertMessage } from "@/components/ui/alert-message"
-import { TestUsers } from "@/components/auth/test-users"
 
 export function LoginForm() {
   const [username, setUsername] = useState("")
@@ -53,12 +52,9 @@ export function LoginForm() {
         localStorage.setItem("authToken", data.authToken)
         localStorage.setItem("userInfo", JSON.stringify(data.data))
         
-        // 构建FastGPT分享链接并拼接token
-        const fastgptBaseUrl = process.env.NEXT_PUBLIC_FASTGPT_SHARE_URL || 'https://cloud.fastgpt.io/chat/share?shareId=yzRbRsO1vdKbfUeOhWoIv8LY'
-        const fastgptUrl = `${fastgptBaseUrl}&authToken=${data.authToken}`
-        
+        // 跳转到链接选择页面
         setTimeout(() => {
-          window.location.href = fastgptUrl
+          window.location.href = '/select-link'
         }, 1000)
       } else {
         showAlert(data.message || "登录失败")
@@ -106,7 +102,7 @@ export function LoginForm() {
         </Button>
       </form>
       
-      <TestUsers />
+
     </div>
   )
 }

@@ -25,8 +25,7 @@ export async function POST(request: NextRequest) {
       } else {
         console.log(`Token ${token} 验证失败`);
         return NextResponse.json(
-          { success: false, message: 'Token无效' },
-          { status: 401 }
+          { success: false, message: '身份验证失败，无效的token' }
         );
       }
     }
@@ -48,21 +47,18 @@ export async function POST(request: NextRequest) {
       } else {
         console.log(`用户 ${username} 登录失败`);
         return NextResponse.json(
-          { success: false, message: '用户名或密码错误' },
-          { status: 401 }
+          { success: false, message: '用户名或密码错误' }
         );
       }
     }
 
     return NextResponse.json(
-      { success: false, message: '请提供用户名密码或token' },
-      { status: 400 }
+      { success: false, message: '缺少认证参数' }
     );
   } catch (error) {
     console.error('登录API错误:', error);
     return NextResponse.json(
-      { success: false, message: '服务器错误' },
-      { status: 500 }
+      { success: false, message: '服务器错误' }
     );
   }
 }

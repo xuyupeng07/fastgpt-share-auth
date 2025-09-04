@@ -238,7 +238,7 @@ export function RechargeTable() {
                 ) : (
                   users.map((user) => (
                     <SelectItem key={user.token} value={user.token}>
-                      {user.username} (余额: {Math.round(parseFloat(user.balance?.toString() || '0'))}积分)
+                      {user.username} (余额: {parseFloat(user.balance?.toString() || '0').toFixed(2)}积分)
                     </SelectItem>
                   ))
                 )}

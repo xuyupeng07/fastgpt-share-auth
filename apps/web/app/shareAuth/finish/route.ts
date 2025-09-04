@@ -8,8 +8,7 @@ export async function POST(request: NextRequest) {
 
     if (!token) {
       return NextResponse.json(
-        { success: false, message: '缺少token参数' },
-        { status: 400 }
+        { success: false, message: '缺少token参数' }
       );
     }
 
@@ -20,8 +19,7 @@ export async function POST(request: NextRequest) {
     if (!user) {
       console.log(`Token ${token} 无效`);
       return NextResponse.json(
-        { success: false, message: 'Token无效' },
-        { status: 401 }
+        { success: false, message: '身份验证失败，无效的token' }
       );
     }
 
@@ -56,6 +54,10 @@ export async function POST(request: NextRequest) {
     
     // 计算费用 - 消耗积分直接等于总费用
     const cost = totalPoints;
+
+    // 移除余额检查，允许余额扣成负数
+    const currentBalance = parseFloat(user.balance);
+    console.log(`用户 ${user.username} 当前余额: ${currentBalance}, 本次消费: ${cost}`);
 
     console.log(`用户 ${user.username} 对话结束 - 消耗积分: ${totalPoints}, 消耗Token: ${totalTokens}, 总费用: ${cost.toFixed(4)}积分`);
 
@@ -109,15 +111,13 @@ export async function POST(request: NextRequest) {
     } catch (error) {
       console.error('处理消费记录失败:', error);
       return NextResponse.json(
-        { success: false, message: '处理消费记录失败' },
-        { status: 500 }
+        { success: false, message: '处理消费记录失败' }
       );
     }
   } catch (error) {
     console.error('对话结束API错误:', error);
     return NextResponse.json(
-      { success: false, message: '服务器错误' },
-      { status: 500 }
+      { success: false, message: '服务器错误' }
     );
   }
 }

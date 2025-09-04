@@ -1,9 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   transpilePackages: ["@workspace/ui"],
-  env: {
-    NEXT_PUBLIC_FASTGPT_SHARE_URL: process.env.FASTGPT_SHARE_URL,
-  },
+  // FastGPT 链接配置已迁移到数据库管理
 }
 
 export default nextConfig

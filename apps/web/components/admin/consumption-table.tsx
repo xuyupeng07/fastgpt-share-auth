@@ -31,7 +31,7 @@ export function ConsumptionTable() {
   const [searchUsername, setSearchUsername] = useState('')
   const [searchType, setSearchType] = useState<'token' | 'id' | 'username'>('token')
   const [selectedRecord, setSelectedRecord] = useState<any>(null)
-  const [detailLoading, setDetailLoading] = useState(false)
+  const [detailLoading, setDetailLoading] = useState<{[key: number]: boolean}>({})
   const [dialogOpen, setDialogOpen] = useState(false)
   const pageSize = 10
 
@@ -89,7 +89,7 @@ export function ConsumptionTable() {
 
   const fetchRecordDetail = async (recordId: number) => {
     try {
-      setDetailLoading(true)
+      setDetailLoading(prev => ({ ...prev, [recordId]: true }))
       const response = await fetch(`/api/consumption/detail/${recordId}`)
       if (response.ok) {
         const result = await response.json()
@@ -103,7 +103,7 @@ export function ConsumptionTable() {
     } catch (error) {
       console.error('获取消费记录详情失败:', error)
     } finally {
-      setDetailLoading(false)
+      setDetailLoading(prev => ({ ...prev, [recordId]: false }))
     }
   }
 
@@ -227,9 +227,9 @@ export function ConsumptionTable() {
                         variant="outline"
                         size="sm"
                         onClick={() => fetchRecordDetail(record.id)}
-                        disabled={detailLoading}
+                        disabled={detailLoading[record.id]}
                       >
-                        {detailLoading ? '加载中...' : '详情'}
+                        {detailLoading[record.id] ? '加载中...' : '详情'}
                       </Button>
                     </TableCell>
                   </TableRow>

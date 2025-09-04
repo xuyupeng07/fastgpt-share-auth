@@ -8,8 +8,7 @@ export async function POST(request: NextRequest) {
 
     if (!token) {
       return NextResponse.json(
-        { success: false, message: '缺少token参数' },
-        { status: 400 }
+        { success: false, message: '缺少token参数' }
       );
     }
 
@@ -20,18 +19,16 @@ export async function POST(request: NextRequest) {
     if (!user) {
       console.log(`Token ${token} 无效`);
       return NextResponse.json(
-        { success: false, message: 'Token无效' },
-        { status: 401 }
+        { success: false, message: '身份验证失败，无效的token' }
       );
     }
 
-    // 检查用户余额
+    // 检查用户余额，只有余额大于0时才能开始对话
     const balance = parseFloat(user.balance);
     if (balance <= 0) {
       console.log(`用户 ${user.username} 余额不足: ${balance}`);
       return NextResponse.json(
-        { success: false, message: '余额不足，请先充值' },
-        { status: 402 }
+        { success: false, message: '余额不足，请充值后再使用' }
       );
     }
 
@@ -41,8 +38,7 @@ export async function POST(request: NextRequest) {
     if (hasSensitiveWord) {
       console.log(`用户 ${user.username} 提问包含敏感词: ${question}`);
       return NextResponse.json(
-        { success: false, message: '提问包含敏感词，请重新输入' },
-        { status: 403 }
+        { success: false, message: '内容包含敏感词，请重新输入' }
       );
     }
 
@@ -58,8 +54,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('对话开始API错误:', error);
     return NextResponse.json(
-      { success: false, message: '服务器错误' },
-      { status: 500 }
+      { success: false, message: '服务器错误' }
     );
   }
 }

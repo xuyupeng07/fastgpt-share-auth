@@ -3,6 +3,7 @@
 import { LoginForm } from "@/components/auth/login-form"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@workspace/ui/components/card"
 import { ThemeToggle } from "@/components/theme-toggle"
+import Image from "next/image"
 
 export default function LoginPage() {
   return (
@@ -14,7 +15,15 @@ export default function LoginPage() {
         
         <Card>
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold">FastGPT</CardTitle>
+            <div className="mb-4">
+              <Image 
+                src="/fastgpt-withtext.svg" 
+                alt="FastGPT" 
+                width={200} 
+                height={60} 
+                className="mx-auto"
+              />
+            </div>
             <CardDescription>
               欢迎回来，请登录您的账户
             </CardDescription>

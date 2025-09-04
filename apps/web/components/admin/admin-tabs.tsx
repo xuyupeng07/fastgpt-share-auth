@@ -4,15 +4,30 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui/componen
 import { UsersTable } from "@/components/admin/users-table"
 import { ConsumptionTable } from "@/components/admin/consumption-table"
 import { RechargeTable } from "@/components/admin/recharge-table"
+import { Users, Activity, CreditCard, Workflow } from "lucide-react"
+import WorkflowsTable from "@/components/admin/workflows-table"
 
 
 export function AdminTabs() {
   return (
     <Tabs defaultValue="users" className="w-full">
-      <TabsList className="grid w-full grid-cols-3">
-        <TabsTrigger value="users">用户管理</TabsTrigger>
-        <TabsTrigger value="consumption">消费记录</TabsTrigger>
-        <TabsTrigger value="recharge">充值记录</TabsTrigger>
+      <TabsList className="grid w-full grid-cols-4">
+        <TabsTrigger value="users" className="flex items-center space-x-2">
+          <Users className="h-4 w-4" />
+          <span>用户管理</span>
+        </TabsTrigger>
+        <TabsTrigger value="consumption" className="flex items-center space-x-2">
+          <Activity className="h-4 w-4" />
+          <span>消费记录</span>
+        </TabsTrigger>
+        <TabsTrigger value="recharge" className="flex items-center space-x-2">
+          <CreditCard className="h-4 w-4" />
+          <span>充值记录</span>
+        </TabsTrigger>
+        <TabsTrigger value="workflows" className="flex items-center space-x-2">
+          <Workflow className="h-4 w-4" />
+          <span>工作流管理</span>
+        </TabsTrigger>
       </TabsList>
       
       <TabsContent value="users" className="mt-6">
@@ -25,6 +40,11 @@ export function AdminTabs() {
       
       <TabsContent value="recharge" className="mt-6">
         <RechargeTable />
+      </TabsContent>
+      
+
+      <TabsContent value="workflows" className="mt-6">
+        <WorkflowsTable />
       </TabsContent>
     </Tabs>
   )
