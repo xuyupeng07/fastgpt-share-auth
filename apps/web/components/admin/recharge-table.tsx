@@ -7,6 +7,7 @@ import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
 import { Input } from "@workspace/ui/components/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui/components/select"
+import { useStats } from "@/contexts/stats-context"
 
 interface RechargeRecord {
   id: number
@@ -27,9 +28,13 @@ interface User {
 }
 
 export function RechargeTable() {
+  const { refreshStats } = useStats()
   const [records, setRecords] = useState<RechargeRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [searchToken, setSearchToken] = useState('')
+  const [searchId, setSearchId] = useState('')
+  const [searchUsername, setSearchUsername] = useState('')
+  const [searchType, setSearchType] = useState<'token' | 'id' | 'username'>('token')
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [newRecharge, setNewRecharge] = useState({ token: '', amount: '' })
@@ -41,7 +46,7 @@ export function RechargeTable() {
   useEffect(() => {
     fetchRechargeRecords()
     fetchUsers()
-  }, [currentPage, searchToken])
+  }, [currentPage])
 
   const fetchUsers = async () => {
     try {
@@ -62,28 +67,59 @@ export function RechargeTable() {
   const fetchRechargeRecords = async () => {
     try {
       setLoading(true)
-      const url = searchToken ? `/api/recharge/records?token=${encodeURIComponent(searchToken)}` : '/api/recharge/records'
+      let url = '/api/recharge/records'
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: pageSize.toString()
+      })
+      
+      if (searchType === 'token' && searchToken) {
+        params.append('token', searchToken)
+        url = `/api/recharge/records?${params}`
+      } else if (searchType === 'id' && searchId) {
+        params.append('id', searchId)
+        url = `/api/recharge/records?${params}`
+      } else if (searchType === 'username' && searchUsername) {
+        params.append('username', searchUsername)
+        url = `/api/recharge/records?${params}`
+      } else {
+        url = `/api/recharge/records?${params}`
+      }
       const response = await fetch(url)
       const data = await response.json()
       
       if (data.success) {
-        const allRecords = data.data || []
-        // 添加状态字段，默认为成功，并确保数值字段为数字类型
-        const recordsWithStatus = allRecords.map((record: any) => ({
-          ...record,
-          status: 'success' as const,
-          amount: parseFloat(record.amount) || 0,
-          balance_before: parseFloat(record.balance_before) || 0,
-          balance_after: parseFloat(record.balance_after) || 0
-        }))
-        
-        // 分页处理
-        const startIndex = (currentPage - 1) * pageSize
-        const endIndex = startIndex + pageSize
-        const paginatedRecords = recordsWithStatus.slice(startIndex, endIndex)
-        
-        setRecords(paginatedRecords)
-        setTotalPages(Math.ceil(allRecords.length / pageSize))
+        // 适配新的API返回格式
+        if (data.data.records) {
+          // 新格式：服务端分页
+          const recordsWithStatus = data.data.records.map((record: any) => ({
+            ...record,
+            status: 'success' as const,
+            amount: parseFloat(record.amount) || 0,
+            balance_before: parseFloat(record.balance_before) || 0,
+            balance_after: parseFloat(record.balance_after) || 0
+          }))
+          setRecords(recordsWithStatus)
+          setTotalPages(Math.ceil((data.data.total || 0) / pageSize))
+        } else {
+          // 兼容旧格式：客户端分页
+          const allRecords = data.data || []
+          const recordsWithStatus = allRecords.map((record: any) => ({
+            ...record,
+            status: 'success' as const,
+            amount: parseFloat(record.amount) || 0,
+            balance_before: parseFloat(record.balance_before) || 0,
+            balance_after: parseFloat(record.balance_after) || 0
+          }))
+          
+          // 分页处理
+          const startIndex = (currentPage - 1) * pageSize
+          const endIndex = startIndex + pageSize
+          const paginatedRecords = recordsWithStatus.slice(startIndex, endIndex)
+          
+          setRecords(paginatedRecords)
+          setTotalPages(Math.ceil(allRecords.length / pageSize))
+        }
       } else {
         setRecords([])
         setTotalPages(1)
@@ -122,6 +158,8 @@ export function RechargeTable() {
         setNewRecharge({ token: '', amount: '' })
         fetchUsers() // 刷新用户列表以更新余额显示
         fetchRechargeRecords()
+        // 触发统计数据热更新
+        refreshStats()
       } else {
         alert(`充值失败: ${data.message || '未知错误'}`)
       }
@@ -225,18 +263,47 @@ export function RechargeTable() {
 
         {/* Search */}
         <div className="flex gap-2 mb-4">
-          <Input
-            placeholder="输入Token搜索充值记录"
-            value={searchToken}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchToken(e.target.value)}
-            className="max-w-sm"
-          />
+          <Select value={searchType} onValueChange={(value: 'token' | 'id' | 'username') => setSearchType(value)}>
+            <SelectTrigger className="w-32">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="token">Token</SelectItem>
+              <SelectItem value="id">ID</SelectItem>
+              <SelectItem value="username">用户名</SelectItem>
+            </SelectContent>
+          </Select>
+          {searchType === 'token' ? (
+            <Input
+              placeholder="输入Token搜索充值记录"
+              value={searchToken}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchToken(e.target.value)}
+              className="max-w-sm"
+            />
+          ) : searchType === 'id' ? (
+            <Input
+              placeholder="输入ID搜索充值记录"
+              value={searchId}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchId(e.target.value)}
+              className="max-w-sm"
+            />
+          ) : (
+            <Input
+              placeholder="输入用户名搜索充值记录"
+              value={searchUsername}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchUsername(e.target.value)}
+              className="max-w-sm"
+            />
+          )}
           <Button onClick={handleSearch}>搜索</Button>
           <Button 
             variant="outline" 
             onClick={() => {
               setSearchToken('')
+              setSearchId('')
+              setSearchUsername('')
               setCurrentPage(1)
+              fetchRechargeRecords()
             }}
           >
             重置
@@ -248,7 +315,7 @@ export function RechargeTable() {
             <TableHeader>
               <TableRow>
                 <TableHead>ID</TableHead>
-                <TableHead>Token</TableHead>
+                <TableHead>用户名</TableHead>
                 <TableHead>充值金额</TableHead>
                 <TableHead>充值前余额</TableHead>
                 <TableHead>充值后余额</TableHead>
@@ -268,8 +335,8 @@ export function RechargeTable() {
                 records.map((record) => (
                   <TableRow key={record.id}>
                     <TableCell>{record.id}</TableCell>
-                    <TableCell className="font-mono text-xs">
-                      {record.token ? `${record.token.substring(0, 12)}...` : '-'}
+                    <TableCell className="font-medium">
+                      {record.username || '-'}
                     </TableCell>
                     <TableCell className="font-medium text-green-600">
                       +¥{record.amount.toFixed(2)}

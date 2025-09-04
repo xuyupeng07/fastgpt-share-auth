@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@workspace/ui/components/button"
 import { Input } from "@workspace/ui/components/input"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@workspace/ui/components/dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui/components/select"
 
 interface ConsumptionRecord {
   id: number
@@ -26,6 +27,9 @@ export function ConsumptionTable() {
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [searchToken, setSearchToken] = useState('')
+  const [searchId, setSearchId] = useState('')
+  const [searchUsername, setSearchUsername] = useState('')
+  const [searchType, setSearchType] = useState<'token' | 'id' | 'username'>('token')
   const [selectedRecord, setSelectedRecord] = useState<any>(null)
   const [detailLoading, setDetailLoading] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -33,14 +37,27 @@ export function ConsumptionTable() {
 
   useEffect(() => {
     fetchConsumptionRecords()
-  }, [currentPage, searchToken])
+  }, [currentPage])
 
   const fetchConsumptionRecords = async () => {
     try {
       setLoading(true)
       let url = '/api/consumption/all'
-      if (searchToken) {
-        url = `/api/consumption/${searchToken}`
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: pageSize.toString()
+      })
+      
+      if (searchType === 'token' && searchToken) {
+        url = `/api/consumption/${searchToken}?${params}`
+      } else if (searchType === 'id' && searchId) {
+        params.append('id', searchId)
+        url = `/api/consumption/all?${params}`
+      } else if (searchType === 'username' && searchUsername) {
+        params.append('username', searchUsername)
+        url = `/api/consumption/all?${params}`
+      } else {
+        url = `/api/consumption/all?${params}`
       }
       
       const response = await fetch(url)
@@ -48,8 +65,16 @@ export function ConsumptionTable() {
         const result = await response.json()
         if (result.success) {
           const data = result.data || result
-          setRecords(data.records || [])
-          setTotalPages(Math.ceil((data.total || data.records?.length || 0) / pageSize))
+          // 适配新的API返回格式
+          if (data.records) {
+            // 新格式：服务端分页
+            setRecords(data.records)
+            setTotalPages(Math.ceil((data.total || 0) / pageSize))
+          } else {
+            // 兼容旧格式
+            setRecords(data || [])
+            setTotalPages(Math.ceil((data.length || 0) / pageSize))
+          }
         } else {
           console.error('API返回错误:', result.message)
           setRecords([])
@@ -115,18 +140,47 @@ export function ConsumptionTable() {
       <CardContent>
         {/* Search */}
         <div className="flex gap-2 mb-4">
-          <Input
-            placeholder="输入Token搜索用户消费记录"
-            value={searchToken}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchToken(e.target.value)}
-            className="max-w-sm"
-          />
+          <Select value={searchType} onValueChange={(value: 'token' | 'id' | 'username') => setSearchType(value)}>
+            <SelectTrigger className="w-32">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="token">Token</SelectItem>
+              <SelectItem value="id">ID</SelectItem>
+              <SelectItem value="username">用户名</SelectItem>
+            </SelectContent>
+          </Select>
+          {searchType === 'token' ? (
+            <Input
+              placeholder="输入Token搜索用户消费记录"
+              value={searchToken}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchToken(e.target.value)}
+              className="max-w-sm"
+            />
+          ) : searchType === 'id' ? (
+            <Input
+              placeholder="输入ID搜索消费记录"
+              value={searchId}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchId(e.target.value)}
+              className="max-w-sm"
+            />
+          ) : (
+            <Input
+              placeholder="输入用户名搜索消费记录"
+              value={searchUsername}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchUsername(e.target.value)}
+              className="max-w-sm"
+            />
+          )}
           <Button onClick={handleSearch}>搜索</Button>
           <Button 
             variant="outline" 
             onClick={() => {
               setSearchToken('')
+              setSearchId('')
+              setSearchUsername('')
               setCurrentPage(1)
+              fetchConsumptionRecords()
             }}
           >
             重置
@@ -141,7 +195,6 @@ export function ConsumptionTable() {
                 <TableHead>Token使用</TableHead>
                 <TableHead>积分消费</TableHead>
                 <TableHead>消费金额</TableHead>
-                <TableHead>问题</TableHead>
                 <TableHead>时间</TableHead>
                 <TableHead>操作</TableHead>
               </TableRow>
@@ -149,7 +202,7 @@ export function ConsumptionTable() {
             <TableBody>
               {records.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
+                  <TableCell colSpan={6} className="text-center py-8">
                     {searchToken ? '未找到相关消费记录' : '暂无消费记录'}
                   </TableCell>
                 </TableRow>
@@ -157,17 +210,14 @@ export function ConsumptionTable() {
                 records.map((record) => (
                   <TableRow key={record.id}>
                     <TableCell>{record.username}</TableCell>
-                    <TableCell className="text-right">
+                    <TableCell>
                       {record.token_used || 0}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell>
                       {(parseFloat(record.points_used) || 0).toFixed(4)}
                     </TableCell>
-                    <TableCell className="text-right font-medium">
+                    <TableCell className="font-medium">
                       ¥{(parseFloat(record.cost) || 0).toFixed(4)}
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {record.question ? (record.question.length > 50 ? record.question.substring(0, 50) + '...' : record.question) : '-'}
                     </TableCell>
                     <TableCell className="text-sm">
                       {formatDate(record.created_at)}

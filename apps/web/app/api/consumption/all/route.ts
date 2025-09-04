@@ -6,19 +6,35 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
+    const id = searchParams.get('id');
+    const username = searchParams.get('username');
     
     const records = await getAllConsumptionRecords();
-    const recordsArray = Array.isArray(records) ? records : [];
+    // 强制类型断言以处理数据库查询结果
+    const recordsArray: any[] = records as any;
+    let filteredRecords: any[] = recordsArray || [];
+    
+    // 根据查询条件过滤记录
+    if (id) {
+      const recordId = parseInt(id);
+      if (!isNaN(recordId)) {
+        filteredRecords = filteredRecords.filter((record: any) => record.id === recordId);
+      }
+    } else if (username) {
+      filteredRecords = filteredRecords.filter((record: any) => 
+        record.username && record.username.toLowerCase().includes(username.toLowerCase())
+      );
+    }
     
     // 实现分页
     const offset = (page - 1) * limit;
-    const paginatedRecords = recordsArray.slice(offset, offset + limit);
+    const paginatedRecords = filteredRecords.slice(offset, offset + limit);
     
     return NextResponse.json({
       success: true,
       data: {
         records: paginatedRecords,
-        total: recordsArray.length,
+        total: filteredRecords.length,
         page: page,
         limit: limit
       }

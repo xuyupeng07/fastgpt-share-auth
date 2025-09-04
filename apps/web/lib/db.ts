@@ -42,11 +42,25 @@ export async function authenticateUser(username: string, password: string) {
 // 获取所有用户
 export async function getAllUsers() {
   try {
-    const [rows] = await pool.execute('SELECT id, username, token, uid, email, balance, created_at FROM users ORDER BY created_at DESC');
+    const [rows] = await pool.execute('SELECT id, username, token, uid, email, balance, status, created_at FROM users ORDER BY created_at DESC');
     return rows;
   } catch (error) {
     console.error('获取用户列表失败:', error);
     return [];
+  }
+}
+
+// 更新用户状态
+export async function updateUserStatus(userId: number, status: 'active' | 'inactive') {
+  try {
+    const [result] = await pool.execute(
+      'UPDATE users SET status = ? WHERE id = ?',
+      [status, userId]
+    );
+    return result;
+  } catch (error) {
+    console.error('更新用户状态失败:', error);
+    throw error;
   }
 }
 

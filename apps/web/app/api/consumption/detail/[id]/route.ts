@@ -49,7 +49,7 @@ export async function GET(
           for (const item of responseData) {
             if (item.historyPreview && Array.isArray(item.historyPreview)) {
               // 转换新格式的聊天记录为标准格式
-              chatHistory = item.historyPreview.map(msg => ({
+              chatHistory = item.historyPreview.map((msg: { obj: string; value: string }) => ({
                 role: msg.obj === 'Human' ? 'user' : 'assistant',
                 content: msg.value
               }))

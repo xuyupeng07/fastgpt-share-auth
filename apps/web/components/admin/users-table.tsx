@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/componen
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui/components/table"
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
+import { useStats } from "@/contexts/stats-context"
 
 interface User {
   id: number
@@ -17,6 +18,7 @@ interface User {
 }
 
 export function UsersTable() {
+  const { refreshStats } = useStats()
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
@@ -45,12 +47,29 @@ export function UsersTable() {
 
   const handleStatusChange = async (userId: number, newStatus: 'active' | 'inactive') => {
     try {
-      // 这里可以调用API更新用户状态
-      setUsers(users.map(user => 
-        user.id === userId ? { ...user, status: newStatus } : user
-      ))
+      const response = await fetch('/api/users/status', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId, status: newStatus }),
+      })
+      
+      if (response.ok) {
+         // 更新本地状态
+         setUsers(users.map(user => 
+           user.id === userId ? { ...user, status: newStatus } : user
+         ))
+         // 触发统计数据热更新
+         refreshStats()
+       } else {
+        const errorData = await response.json()
+        console.error('更新用户状态失败:', errorData.error)
+        alert('更新用户状态失败: ' + errorData.error)
+      }
     } catch (error) {
       console.error('更新用户状态失败:', error)
+      alert('更新用户状态失败，请稍后重试')
     }
   }
 
