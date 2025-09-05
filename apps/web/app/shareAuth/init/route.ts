@@ -14,7 +14,6 @@ export async function POST(request: NextRequest) {
       // 首先尝试JWT token验证
       const jwtValidation = await validateToken(token);
       if (jwtValidation.success && jwtValidation.data) {
-        console.log(`JWT Token验证成功: ${jwtValidation.data.username}`);
         return NextResponse.json({
           success: true,
           authToken: token, // 返回原JWT token
