@@ -11,6 +11,15 @@ export async function POST(request: NextRequest) {
     const user = await authenticateUser(username, password);
     
     if (user) {
+      // 检查用户状态，如果用户被禁用则拒绝登录
+      if (user.status === 'inactive') {
+        console.log(`用户 ${username} 登录失败：账户已被禁用`);
+        return NextResponse.json(
+          { success: false, message: '账户已被禁用，请联系管理员' },
+          { status: 403 }
+        );
+      }
+      
       console.log(`用户 ${username} 登录成功`);
       
       // 生成安全的JWT token

@@ -5,12 +5,15 @@ import { validateToken } from '@/lib/jwt';
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const token = searchParams.get('token');
+    // 从URL参数或Authorization header获取token
+    const token = searchParams.get('token') || 
+                 request.headers.get('authorization')?.replace('Bearer ', '') ||
+                 request.cookies.get('authToken')?.value;
     
     if (!token) {
       return NextResponse.json(
         { success: false, message: '缺少token参数' },
-        { status: 400 }
+        { status: 401 }
       );
     }
 
@@ -30,6 +33,18 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         { success: false, message: '无效的token' },
         { status: 401 }
+      );
+    }
+
+    // 检查用户状态 - 如果用户被禁用，返回403状态码
+    if (user.status === 'inactive') {
+      return NextResponse.json(
+        {
+          error: 'Account disabled',
+          message: '账户已被禁用，请联系管理员',
+          code: 'ACCOUNT_DISABLED'
+        },
+        { status: 403 }
       );
     }
 

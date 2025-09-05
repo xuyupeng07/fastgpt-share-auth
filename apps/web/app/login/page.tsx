@@ -2,16 +2,30 @@
 
 import { LoginForm } from "@/components/auth/login-form"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@workspace/ui/components/card"
+import { AlertMessage } from "@/components/ui/alert-message"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { AlertTriangle } from "lucide-react"
 import Image from "next/image"
+import { useSearchParams } from "next/navigation"
+import { Suspense } from "react"
 
-export default function LoginPage() {
+function LoginContent() {
+  const searchParams = useSearchParams()
+  const isDisabled = searchParams.get('disabled') === 'true'
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md space-y-6">
         <div className="flex justify-end">
           <ThemeToggle />
         </div>
+        
+        {isDisabled && (
+          <AlertMessage 
+            message="您的账户已被禁用，请联系管理员获取帮助。" 
+            type="error" 
+          />
+        )}
         
         <Card>
           <CardHeader className="text-center">
@@ -34,5 +48,13 @@ export default function LoginPage() {
         </Card>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <LoginContent />
+    </Suspense>
   )
 }

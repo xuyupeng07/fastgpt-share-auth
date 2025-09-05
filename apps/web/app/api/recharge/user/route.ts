@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getRechargeRecordsByToken } from '@/lib/db';
+import { getRechargeRecordsByToken, findUserByToken, getUserById } from '@/lib/db';
+import { validateToken } from '@/lib/jwt';
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,8 +13,37 @@ export async function GET(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // 验证用户身份
+    let user = null;
     
-    const records = await getRechargeRecordsByToken(token);
+    // 首先尝试JWT token验证
+    const jwtValidation = await validateToken(token);
+    if (jwtValidation.success && jwtValidation.data) {
+      // JWT token验证成功，通过用户ID获取用户信息
+      user = await getUserById(jwtValidation.data.userId);
+    } else {
+      // JWT验证失败，尝试明文token验证（向后兼容）
+      user = await findUserByToken(token);
+    }
+    
+    if (!user) {
+      return NextResponse.json(
+        { success: false, message: '无效的token' },
+        { status: 401 }
+      );
+    }
+
+    // 检查用户状态
+    if (user.status === 'inactive') {
+      return NextResponse.json(
+        { success: false, message: '账户已被禁用' },
+        { status: 403 }
+      );
+    }
+    
+    // 获取该用户的充值记录（使用用户的实际token）
+    const records = await getRechargeRecordsByToken(user.token);
     
     return NextResponse.json({
       success: true,

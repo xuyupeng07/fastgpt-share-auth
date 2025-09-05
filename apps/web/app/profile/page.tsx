@@ -18,6 +18,7 @@ interface UserInfo {
   email: string
   status: string
   is_admin: number
+  disabled?: boolean
 }
 
 interface ConsumptionRecord {
@@ -94,14 +95,40 @@ export default function ProfilePage() {
   // 获取最新用户信息
   const refreshUserInfo = async (token: string) => {
     try {
-      const response = await fetch(`/api/user/info?token=${token}`)
+      const response = await fetch('/api/user/info', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
       if (response.ok) {
         const data = await response.json()
         if (data.success) {
           setUserInfo(data.data)
           // 同时更新本地存储
           localStorage.setItem('userInfo', JSON.stringify(data.data))
+          
+          // 如果用户被禁用，显示提示信息
+          if (data.data.disabled || data.data.status === 'inactive') {
+            console.log('用户账户已被禁用')
+          }
         }
+      } else if (response.status === 403) {
+        // 用户账户被禁用，立即清除登录态并重定向到登录页
+        console.log('Account disabled, logging out and redirecting to login')
+        localStorage.removeItem('authToken')
+        localStorage.removeItem('userInfo')
+        sessionStorage.clear()
+        // 清除cookie
+        document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+        window.location.href = '/login?disabled=true'
+        return
+      } else if (response.status === 401) {
+        // token无效，跳转到登录页
+        localStorage.removeItem('authToken')
+        localStorage.removeItem('userInfo')
+        // 清除cookie
+        document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+        window.location.href = '/login'
       }
     } catch (error) {
       console.error('获取最新用户信息失败:', error)
@@ -200,6 +227,21 @@ export default function ProfilePage() {
           <ThemeToggle />
         </div>
 
+        {/* 禁用用户警告 */}
+        {(userInfo.disabled || userInfo.status === 'inactive') && (
+          <Card className="border-destructive bg-destructive/10">
+            <CardContent className="pt-6">
+              <div className="flex items-center space-x-2 text-destructive">
+                <div className="w-4 h-4 rounded-full bg-destructive"></div>
+                <p className="font-medium">账户已被禁用</p>
+              </div>
+              <p className="text-sm text-muted-foreground mt-2">
+                您的账户已被管理员禁用，无法使用相关功能。如有疑问，请联系管理员。
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
         {/* 用户信息卡片 */}
         <Card>
           <CardHeader>
@@ -212,7 +254,8 @@ export default function ProfilePage() {
                 variant="outline" 
                 size="sm" 
                 onClick={() => authToken && refreshUserInfo(authToken)}
-                disabled={loading}
+                disabled={loading || userInfo.disabled || userInfo.status === 'inactive'}
+                title={userInfo.disabled || userInfo.status === 'inactive' ? '账户已被禁用' : '刷新余额'}
               >
                 <RefreshCw className="h-4 w-4 mr-2" />
                 刷新余额

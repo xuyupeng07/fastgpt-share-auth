@@ -47,7 +47,11 @@ export default function SelectLinkPage() {
   // 获取最新用户信息
   const refreshUserInfo = async (token: string) => {
     try {
-      const response = await fetch(`/api/user/info?token=${token}`)
+      const response = await fetch('/api/user/info', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
       if (response.ok) {
         const data = await response.json()
         if (data.success) {
@@ -55,6 +59,23 @@ export default function SelectLinkPage() {
           // 同时更新本地存储
           localStorage.setItem('userInfo', JSON.stringify(data.data))
         }
+      } else if (response.status === 403) {
+        // 用户账户被禁用，立即清除登录态并重定向到登录页
+        console.log('Account disabled, logging out and redirecting to login')
+        localStorage.removeItem('authToken')
+        localStorage.removeItem('userInfo')
+        sessionStorage.clear()
+        // 清除cookie
+        document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+        window.location.href = '/login?disabled=true'
+        return
+      } else if (response.status === 401) {
+        // token无效，跳转到登录页
+        localStorage.removeItem('authToken')
+        localStorage.removeItem('userInfo')
+        // 清除cookie
+        document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+        window.location.href = '/login'
       }
     } catch (error) {
       console.error('获取最新用户信息失败:', error)
@@ -105,6 +126,8 @@ export default function SelectLinkPage() {
   const handleLogout = () => {
     localStorage.removeItem("authToken")
     localStorage.removeItem("userInfo")
+    // 清除cookie
+    document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
     window.location.href = "/login"
   }
 

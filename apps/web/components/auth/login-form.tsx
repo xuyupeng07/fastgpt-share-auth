@@ -52,6 +52,9 @@ export function LoginForm() {
         localStorage.setItem("authToken", data.authToken)
         localStorage.setItem("userInfo", JSON.stringify(data.data))
         
+        // 设置cookie供中间件使用
+        document.cookie = `authToken=${data.authToken}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`
+        
         // 跳转到链接选择页面
         setTimeout(() => {
           window.location.href = '/select-link'
