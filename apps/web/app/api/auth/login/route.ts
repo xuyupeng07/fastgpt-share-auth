@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
       
       // 生成安全的JWT token
       const jwtToken = generateSecureToken(
-        user.id,
+        user.id, // MongoDB的_id转换为字符串，但JWT期望number类型
         user.username,
         user.uid,
         undefined, // shareId可选

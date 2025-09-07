@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import mongoose from "mongoose";
 import { findUserByToken, updateUserBalance, updateUserBalanceById, addConsumptionRecord, getUserById } from "@/lib/db";
 import { validateToken } from "@/lib/jwt";
 
@@ -21,7 +22,7 @@ export async function POST(request: NextRequest) {
     
     if (jwtValidation.success && jwtValidation.data) {
       // JWT token验证成功，通过用户ID获取用户信息
-      user = await getUserById(jwtValidation.data.userId);
+      user = await getUserById(jwtValidation.data.userId.toString());
     } else {
       // JWT验证失败，尝试明文token验证（向后兼容）
       user = await findUserByToken(token);
@@ -66,37 +67,36 @@ export async function POST(request: NextRequest) {
     const cost = totalPoints;
 
     // 移除余额检查，允许余额扣成负数
-    const currentBalance = parseFloat(user.balance);
+    const currentBalance = user.balance;
     console.log(`用户 ${user.username} 当前余额: ${currentBalance}, 本次消费: ${cost}`);
 
     console.log(`用户 ${user.username} 对话结束 - 消耗积分: ${totalPoints}, 消耗Token: ${totalTokens}, 总费用: ${cost.toFixed(4)}积分`);
 
     try {
-      // 使用事务处理余额扣除和消费记录
-       const { pool } = await import('@/lib/db');
-       const connection = await pool.getConnection();
-      await connection.beginTransaction();
+      // 使用MongoDB事务处理余额扣除和消费记录
+      const session = await mongoose.startSession();
       
       try {
-        // 扣除用户余额
-        await connection.execute(
-          'UPDATE users SET balance = balance - ? WHERE id = ?',
-          [cost, user.id]
-        );
+        await session.withTransaction(async () => {
+          // 扣除用户余额
+          await updateUserBalanceById(user._id.toString(), user.balance - cost);
+          
+          // 记录消费记录
+          await addConsumptionRecord(
+            user._id.toString(),
+            user.username,
+            totalTokens,
+            totalPoints,
+            cost,
+            responseData
+          );
+        });
         
-        // 记录消费记录
-         await connection.execute(
-           'INSERT INTO consumption_records (user_id, username, token_used, points_used, cost, response_data) VALUES (?, ?, ?, ?, ?, ?)',
-           [user.id, user.username, totalTokens, totalPoints, cost, responseData ? JSON.stringify(responseData) : null]
-         );
+        await session.endSession();
         
-        // 提交事务
-        await connection.commit();
-        connection.release();
-        
-        // 获取更新后的余额
-        const [updatedUser] = await pool.execute('SELECT balance FROM users WHERE id = ?', [user.id]);
-        const newBalance = (updatedUser as any[])[0]?.balance || 0;
+        // 获取更新后的用户信息
+        const updatedUser = await getUserById(user._id.toString());
+        const newBalance = updatedUser?.balance || 0;
         
         console.log(`用户 ${user.username} 余额扣除成功，剩余余额: ${newBalance}`);
         
@@ -112,9 +112,7 @@ export async function POST(request: NextRequest) {
         });
         
       } catch (error) {
-        // 回滚事务
-        await connection.rollback();
-        connection.release();
+        await session.endSession();
         throw error;
       }
       

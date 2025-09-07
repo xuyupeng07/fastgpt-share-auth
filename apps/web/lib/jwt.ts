@@ -10,7 +10,7 @@ const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '2h';
 // Token payload接口
 export interface TokenPayload {
   uid: string;
-  userId: number;
+  userId: string | number; // 支持字符串和数字类型
   username: string;
   shareId?: string;
   permissions?: string[];
@@ -27,7 +27,7 @@ export interface TokenValidationResult {
   message?: string;
   data?: {
     uid: string;
-    userId: number;
+    userId: string | number; // 支持字符串和数字类型
     username: string;
     permissions?: string[];
   };
@@ -49,7 +49,7 @@ const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
  * @returns JWT token字符串
  */
 export function generateSecureToken(
-  userId: number,
+  userId: string | number, // 支持字符串和数字类型
   username: string,
   uid: string,
   shareId?: string,
