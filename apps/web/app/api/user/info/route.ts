@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { findUserByToken, getUserById } from '@/lib/db';
+import { getUserById } from '@/lib/db';
 import { validateToken } from '@/lib/jwt';
 
 export async function GET(request: NextRequest) {
@@ -17,16 +17,13 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 首先尝试JWT token验证
+    // 尝试JWT token验证
     const jwtValidation = await validateToken(token);
     let user = null;
     
     if (jwtValidation.success && jwtValidation.data) {
       // JWT token验证成功，通过用户ID获取最新信息
       user = await getUserById(jwtValidation.data.userId);
-    } else {
-      // JWT验证失败，尝试明文token验证（向后兼容）
-      user = await findUserByToken(token);
     }
     
     if (!user) {
@@ -52,10 +49,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
-        uid: user.uid,
+        id: user._id.toString(), // 使用MongoDB的_id字段作为用户ID
         username: user.username,
-        balance: parseFloat(user.balance),
-        role: user.is_admin === 1 ? 'admin' : 'user',
+        balance: Number(user.balance),
+        role: user.is_admin ? 'admin' : 'user',
         email: user.email,
         status: user.status,
         is_admin: user.is_admin

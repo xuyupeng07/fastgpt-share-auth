@@ -11,6 +11,7 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@workspace/ui/components/dialog"
 
 interface UserInfo {
+  id: string // 添加MongoDB的_id字段
   uid: string
   username: string
   balance: number
@@ -263,10 +264,14 @@ export default function ProfilePage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">用户名</p>
                 <p className="font-medium">{userInfo.username}</p>
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">数据库ID</p>
+                <p className="font-medium text-xs">{userInfo.id}</p>
               </div>
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">用户ID</p>

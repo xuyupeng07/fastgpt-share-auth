@@ -15,15 +15,15 @@ export async function GET(
       )
     }
 
-    const recordId = parseInt(id)
-    if (isNaN(recordId)) {
+    // MongoDB ObjectId 验证
+    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
       return NextResponse.json(
-        { success: false, message: '无效的记录ID' },
+        { success: false, message: '无效的记录ID格式' },
         { status: 400 }
       )
     }
 
-    const record = await getConsumptionRecordDetail(recordId)
+    const record = await getConsumptionRecordDetail(id)
     
     if (!record) {
       return NextResponse.json(

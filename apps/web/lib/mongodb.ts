@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
 // MongoDB连接配置
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://root:hpt6pq6r@dbconn.sealoshzh.site:39853/?directConnection=true';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://root:hpt6pq6r@dbconn.sealoshzh.site:39853/exchange?directConnection=true&authSource=admin';
 
 if (!MONGODB_URI) {
   throw new Error('请在环境变量中设置MONGODB_URI');

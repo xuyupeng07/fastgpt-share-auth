@@ -26,10 +26,9 @@ export function ConsumptionTable() {
   const [loading, setLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
-  const [searchToken, setSearchToken] = useState('')
   const [searchId, setSearchId] = useState('')
   const [searchUsername, setSearchUsername] = useState('')
-  const [searchType, setSearchType] = useState<'token' | 'id' | 'username'>('token')
+  const [searchType, setSearchType] = useState<'id' | 'username'>('username')
   const [selectedRecord, setSelectedRecord] = useState<any>(null)
   const [detailLoading, setDetailLoading] = useState<{[key: number]: boolean}>({})
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -48,9 +47,7 @@ export function ConsumptionTable() {
         limit: pageSize.toString()
       })
       
-      if (searchType === 'token' && searchToken) {
-        url = `/api/consumption/${searchToken}?${params}`
-      } else if (searchType === 'id' && searchId) {
+      if (searchType === 'id' && searchId) {
         params.append('id', searchId)
         url = `/api/consumption/all?${params}`
       } else if (searchType === 'username' && searchUsername) {
@@ -140,35 +137,27 @@ export function ConsumptionTable() {
       <CardContent>
         {/* Search */}
         <div className="flex gap-2 mb-4">
-          <Select value={searchType} onValueChange={(value: 'token' | 'id' | 'username') => setSearchType(value)}>
+          <Select value={searchType} onValueChange={(value: 'id' | 'username') => setSearchType(value)}>
             <SelectTrigger className="w-32">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="token">Token</SelectItem>
-              <SelectItem value="id">ID</SelectItem>
               <SelectItem value="username">用户名</SelectItem>
+              <SelectItem value="id">ID</SelectItem>
             </SelectContent>
           </Select>
-          {searchType === 'token' ? (
-            <Input
-              placeholder="输入Token搜索用户消费记录"
-              value={searchToken}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchToken(e.target.value)}
-              className="max-w-sm"
-            />
-          ) : searchType === 'id' ? (
-            <Input
-              placeholder="输入ID搜索消费记录"
-              value={searchId}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchId(e.target.value)}
-              className="max-w-sm"
-            />
-          ) : (
+          {searchType === 'username' ? (
             <Input
               placeholder="输入用户名搜索消费记录"
               value={searchUsername}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchUsername(e.target.value)}
+              className="max-w-sm"
+            />
+          ) : (
+            <Input
+              placeholder="输入ID搜索消费记录"
+              value={searchId}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchId(e.target.value)}
               className="max-w-sm"
             />
           )}
@@ -176,7 +165,6 @@ export function ConsumptionTable() {
           <Button 
             variant="outline" 
             onClick={() => {
-              setSearchToken('')
               setSearchId('')
               setSearchUsername('')
               setCurrentPage(1)
@@ -191,7 +179,7 @@ export function ConsumptionTable() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>用户名</TableHead>
+                <TableHead className="pl-6">用户名</TableHead>
                 <TableHead>Token使用</TableHead>
                 <TableHead>积分消费</TableHead>
                 <TableHead>消费金额</TableHead>
@@ -203,13 +191,13 @@ export function ConsumptionTable() {
               {records.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-8">
-                    {searchToken ? '未找到相关消费记录' : '暂无消费记录'}
+                    {searchId || searchUsername ? '未找到相关消费记录' : '暂无消费记录'}
                   </TableCell>
                 </TableRow>
               ) : (
                 records.map((record) => (
                   <TableRow key={record.id}>
-                    <TableCell>{record.username}</TableCell>
+                    <TableCell className="pl-6">{record.username}</TableCell>
                     <TableCell>
                       {record.token_used || 0}
                     </TableCell>

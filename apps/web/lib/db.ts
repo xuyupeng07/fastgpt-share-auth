@@ -12,16 +12,8 @@ async function ensureConnection() {
 }
 
 // 根据token查找用户
-export async function findUserByToken(token: string) {
-  try {
-    await ensureConnection();
-    const user = await UserModel.findOne({ token }).lean();
-    return user;
-  } catch (error) {
-    console.error('查询用户失败:', error);
-    return null;
-  }
-}
+// 注意：token字段已从用户模型中移除
+// 如果需要根据token查找用户，请使用其他标识符
 
 // 根据用户名和密码验证用户
 export async function authenticateUser(username: string, password: string) {
@@ -99,21 +91,8 @@ export async function updateUserStatus(userId: string | number, status: 'active'
   }
 }
 
-// 更新用户余额（通过token）
-export async function updateUserBalance(token: string, newBalance: number) {
-  try {
-    await ensureConnection();
-    const result = await UserModel.findOneAndUpdate(
-      { token },
-      { balance: newBalance, updated_at: new Date() },
-      { new: true }
-    );
-    return !!result;
-  } catch (error) {
-    console.error('更新用户余额失败:', error);
-    return false;
-  }
-}
+// 注意：token字段已从用户模型中移除
+// 请使用updateUserBalanceById函数通过用户ID更新余额
 
 // 更新用户余额（通过用户ID）
 export async function updateUserBalanceById(userId: string | number, newBalance: number) {
@@ -142,18 +121,10 @@ export async function addConsumptionRecord(
 ) {
   try {
     await ensureConnection();
-    
-    // 获取用户token
-    const user = await UserModel.findById(userId).select('token').lean();
-    if (!user) {
-      console.error('用户不存在');
-      return false;
-    }
 
     const record = new ConsumptionRecordModel({
       user_id: userId,
       username,
-      token: user.token,
       token_used: tokenUsed,
       points_used: pointsUsed,
       cost,
@@ -189,24 +160,10 @@ export async function getAllConsumptionRecords() {
   }
 }
 
-// 获取用户消费记录
+// 获取用户消费记录（已废弃，使用getUserConsumptionRecordsByUsername代替）
 export async function getUserConsumptionRecords(token: string) {
-  try {
-    await ensureConnection();
-    const records = await ConsumptionRecordModel.find({ token })
-      .populate('user_id', 'username')
-      .sort({ created_at: -1 })
-      .lean();
-    
-    return records.map(record => ({
-      ...record,
-      id: record._id,
-      username: record.username || (record.user_id as any)?.username
-    }));
-  } catch (error) {
-    console.error('获取用户消费记录失败:', error);
-    return [];
-  }
+  console.warn('getUserConsumptionRecords已废弃，请使用getUserConsumptionRecordsByUsername');
+  return [];
 }
 
 // 根据用户名获取消费记录
@@ -255,7 +212,6 @@ export async function getConsumptionRecordDetail(id: string | number) {
 export async function addRechargeRecord(
   userId: string | number,
   username: string,
-  token: string,
   amount: number,
   balanceBefore: number,
   balanceAfter: number,
@@ -266,7 +222,6 @@ export async function addRechargeRecord(
     const record = new RechargeRecordModel({
       user_id: userId,
       username,
-      token,
       amount,
       balance_before: balanceBefore,
       balance_after: balanceAfter,
@@ -301,11 +256,13 @@ export async function getAllRechargeRecords() {
   }
 }
 
-// 根据token获取充值记录
-export async function getRechargeRecordsByToken(token: string) {
+
+
+// 根据用户名获取充值记录
+export async function getRechargeRecordsByUsername(username: string) {
   try {
     await ensureConnection();
-    const records = await RechargeRecordModel.find({ token })
+    const records = await RechargeRecordModel.find({ username })
       .populate('user_id', 'username')
       .sort({ created_at: -1 })
       .lean();

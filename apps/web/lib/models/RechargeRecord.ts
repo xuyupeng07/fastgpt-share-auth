@@ -4,7 +4,6 @@ export interface IRechargeRecord extends Document {
   _id: mongoose.Types.ObjectId;
   user_id: mongoose.Types.ObjectId;
   username: string;
-  token: string;
   amount: number;
   balance_before: number;
   balance_after: number;
@@ -20,10 +19,6 @@ const RechargeRecordSchema: Schema = new Schema({
     required: true
   },
   username: {
-    type: String,
-    required: true
-  },
-  token: {
     type: String,
     required: true
   },

@@ -3,24 +3,10 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@workspace/ui/components/button';
 import { Input } from '@workspace/ui/components/input';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from '@workspace/ui/components/table';
-import { 
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@workspace/ui/components/dialog';
 import { Label } from '@workspace/ui/components/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@workspace/ui/components/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@workspace/ui/components/table';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@workspace/ui/components/dialog';
 import { Plus, Edit, Trash2, ExternalLink, Check, X } from 'lucide-react';
 
 // 工作流接口类型定义
@@ -207,26 +193,23 @@ export default function WorkflowsTable() {
   }, []);
 
   if (loading) {
-    return <div className="flex justify-center items-center h-64">加载中...</div>;
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>工作流管理</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8">加载中...</div>
+        </CardContent>
+      </Card>
+    )
   }
 
   return (
-    <div className="space-y-4">
-      {/* 消息提示 */}
-      {message && (
-        <div className={`p-4 rounded-md flex items-center gap-2 ${
-          messageType === 'success' 
-            ? 'bg-green-50 text-green-700 border border-green-200' 
-            : 'bg-red-50 text-red-700 border border-red-200'
-        }`}>
-          {messageType === 'success' ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
-          {message}
-        </div>
-      )}
-
-      {/* 操作栏 */}
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold">工作流管理</h3>
+    <Card>
+      <CardHeader>
+        <div className="flex justify-between items-center">
+          <CardTitle>工作流管理</CardTitle>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button onClick={openCreateDialog}>
@@ -306,14 +289,27 @@ export default function WorkflowsTable() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {/* 消息提示 */}
+        {message && (
+          <div className={`p-4 rounded-md flex items-center gap-2 mb-4 ${
+            messageType === 'success' 
+              ? 'bg-green-50 text-green-700 border border-green-200' 
+              : 'bg-red-50 text-red-700 border border-red-200'
+          }`}>
+            {messageType === 'success' ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
+            {message}
+          </div>
+        )}
 
-      {/* 工作流表格 */}
-      <div className="border rounded-lg">
+        {/* 工作流表格 */}
+        <div className="rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>ID</TableHead>
+              <TableHead className="pl-6">ID</TableHead>
               <TableHead>工作流名称</TableHead>
               <TableHead>描述</TableHead>
               <TableHead>免登录链接</TableHead>
@@ -332,7 +328,7 @@ export default function WorkflowsTable() {
             ) : (
               workflows.map((workflow) => (
                 <TableRow key={workflow.id}>
-                  <TableCell>{workflow.id}</TableCell>
+                  <TableCell className="pl-6">{workflow.id}</TableCell>
                   <TableCell className="font-medium">{workflow.name}</TableCell>
                   <TableCell className="max-w-xs truncate" title={workflow.description}>
                     {workflow.description}
@@ -392,7 +388,8 @@ export default function WorkflowsTable() {
             )}
           </TableBody>
         </Table>
-      </div>
-    </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

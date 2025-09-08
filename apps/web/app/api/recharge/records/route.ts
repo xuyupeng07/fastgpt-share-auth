@@ -1,19 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getAllRechargeRecords, getRechargeRecordsByToken } from '@/lib/db'
+import { getAllRechargeRecords, getRechargeRecordsByUsername } from '@/lib/db'
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const token = searchParams.get('token')
     const id = searchParams.get('id')
     const username = searchParams.get('username')
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '10')
     
     let records
-    if (token) {
+    if (username) {
       // 获取特定用户的充值记录
-      records = await getRechargeRecordsByToken(token)
+      records = await getRechargeRecordsByUsername(username)
     } else {
       // 获取所有充值记录
       records = await getAllRechargeRecords()

@@ -11,7 +11,6 @@ import { useStats } from "@/contexts/stats-context"
 
 interface RechargeRecord {
   id: number
-  token: string
   username?: string
   amount: number
   balance_before: number
@@ -22,8 +21,8 @@ interface RechargeRecord {
 }
 
 interface User {
+  id: string
   username: string
-  token: string
   balance: number
 }
 
@@ -31,13 +30,12 @@ export function RechargeTable() {
   const { refreshStats } = useStats()
   const [records, setRecords] = useState<RechargeRecord[]>([])
   const [loading, setLoading] = useState(true)
-  const [searchToken, setSearchToken] = useState('')
   const [searchId, setSearchId] = useState('')
   const [searchUsername, setSearchUsername] = useState('')
-  const [searchType, setSearchType] = useState<'token' | 'id' | 'username'>('token')
+  const [searchType, setSearchType] = useState<'id' | 'username'>('username')
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
-  const [newRecharge, setNewRecharge] = useState({ token: '', amount: '' })
+  const [newRecharge, setNewRecharge] = useState({ userId: '', amount: '' })
   const [isAdding, setIsAdding] = useState(false)
   const [users, setUsers] = useState<User[]>([])
   const [loadingUsers, setLoadingUsers] = useState(false)
@@ -73,10 +71,7 @@ export function RechargeTable() {
         limit: pageSize.toString()
       })
       
-      if (searchType === 'token' && searchToken) {
-        params.append('token', searchToken)
-        url = `/api/recharge/records?${params}`
-      } else if (searchType === 'id' && searchId) {
+      if (searchType === 'id' && searchId) {
         params.append('id', searchId)
         url = `/api/recharge/records?${params}`
       } else if (searchType === 'username' && searchUsername) {
@@ -134,7 +129,7 @@ export function RechargeTable() {
   }
 
   const handleRecharge = async () => {
-    if (!newRecharge.token || !newRecharge.amount || newRecharge.token === 'loading' || newRecharge.token === 'no-users') {
+    if (!newRecharge.userId || !newRecharge.amount || newRecharge.userId === 'loading' || newRecharge.userId === 'no-users') {
       alert('请选择用户和充值金额')
       return
     }
@@ -147,7 +142,7 @@ export function RechargeTable() {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          token: newRecharge.token,
+          userId: newRecharge.userId,
           amount: parseFloat(newRecharge.amount)
         })
       })
@@ -155,7 +150,7 @@ export function RechargeTable() {
       const data = await response.json()
       if (data.success) {
         alert(`充值成功！新余额: ${(data.data.balance || 0).toFixed(2)}积分`)
-        setNewRecharge({ token: '', amount: '' })
+        setNewRecharge({ userId: '', amount: '' })
         fetchUsers() // 刷新用户列表以更新余额显示
         fetchRechargeRecords()
         // 触发统计数据热更新
@@ -222,9 +217,9 @@ export function RechargeTable() {
           <h3 className="text-sm font-medium mb-3">添加充值</h3>
           <div className="flex gap-2">
             <Select
-              value={newRecharge.token}
+              value={newRecharge.userId}
               onValueChange={(value) => 
-                setNewRecharge({ ...newRecharge, token: value })
+                setNewRecharge({ ...newRecharge, userId: value })
               }
             >
               <SelectTrigger className="max-w-xs">
@@ -237,7 +232,7 @@ export function RechargeTable() {
                   <SelectItem value="no-users" disabled>暂无用户</SelectItem>
                 ) : (
                   users.map((user) => (
-                    <SelectItem key={user.token} value={user.token}>
+                    <SelectItem key={user.id} value={user.id}>
                       {user.username} (余额: {parseFloat(user.balance?.toString() || '0').toFixed(2)}积分)
                     </SelectItem>
                   ))
@@ -263,35 +258,27 @@ export function RechargeTable() {
 
         {/* Search */}
         <div className="flex gap-2 mb-4">
-          <Select value={searchType} onValueChange={(value: 'token' | 'id' | 'username') => setSearchType(value)}>
+          <Select value={searchType} onValueChange={(value: 'id' | 'username') => setSearchType(value)}>
             <SelectTrigger className="w-32">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="token">Token</SelectItem>
-              <SelectItem value="id">ID</SelectItem>
               <SelectItem value="username">用户名</SelectItem>
+              <SelectItem value="id">ID</SelectItem>
             </SelectContent>
           </Select>
-          {searchType === 'token' ? (
-            <Input
-              placeholder="输入Token搜索充值记录"
-              value={searchToken}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchToken(e.target.value)}
-              className="max-w-sm"
-            />
-          ) : searchType === 'id' ? (
-            <Input
-              placeholder="输入ID搜索充值记录"
-              value={searchId}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchId(e.target.value)}
-              className="max-w-sm"
-            />
-          ) : (
+          {searchType === 'username' ? (
             <Input
               placeholder="输入用户名搜索充值记录"
               value={searchUsername}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchUsername(e.target.value)}
+              className="max-w-sm"
+            />
+          ) : (
+            <Input
+              placeholder="输入ID搜索充值记录"
+              value={searchId}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchId(e.target.value)}
               className="max-w-sm"
             />
           )}
@@ -299,7 +286,6 @@ export function RechargeTable() {
           <Button 
             variant="outline" 
             onClick={() => {
-              setSearchToken('')
               setSearchId('')
               setSearchUsername('')
               setCurrentPage(1)
@@ -314,8 +300,7 @@ export function RechargeTable() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>ID</TableHead>
-                <TableHead>用户名</TableHead>
+                <TableHead className="pl-6">用户名</TableHead>
                 <TableHead>充值金额</TableHead>
                 <TableHead>充值前余额</TableHead>
                 <TableHead>充值后余额</TableHead>
@@ -327,15 +312,14 @@ export function RechargeTable() {
             <TableBody>
               {records.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8">
-                    {searchToken ? '未找到相关充值记录' : '暂无充值记录'}
+                  <TableCell colSpan={7} className="text-center py-8">
+                    {searchId || searchUsername ? '未找到相关充值记录' : '暂无充值记录'}
                   </TableCell>
                 </TableRow>
               ) : (
                 records.map((record) => (
                   <TableRow key={record.id}>
-                    <TableCell>{record.id}</TableCell>
-                    <TableCell className="font-medium">
+                    <TableCell className="font-medium pl-6">
                       {record.username || '-'}
                     </TableCell>
                     <TableCell className="font-medium text-green-600">

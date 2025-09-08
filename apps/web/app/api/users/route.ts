@@ -5,9 +5,16 @@ export async function GET() {
   try {
     const records = await getAllUsers();
     const recordsArray = Array.isArray(records) ? records : [];
+    
+    // 确保每个用户都有id字段
+    const usersWithId = recordsArray.map(user => ({
+      ...user,
+      id: user._id.toString() // 添加MongoDB的_id字段作为id
+    }));
+    
     return NextResponse.json({
       success: true,
-      users: recordsArray
+      users: usersWithId
     });
   } catch (error) {
     console.error('获取用户列表失败:', error);

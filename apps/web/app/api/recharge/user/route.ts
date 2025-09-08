@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getRechargeRecordsByToken, findUserByToken, getUserById } from '@/lib/db';
+import { getRechargeRecordsByUsername, getUserById } from '@/lib/db';
 import { validateToken } from '@/lib/jwt';
 
 export async function GET(request: NextRequest) {
@@ -17,14 +17,11 @@ export async function GET(request: NextRequest) {
     // 验证用户身份
     let user = null;
     
-    // 首先尝试JWT token验证
+    // 尝试JWT token验证
     const jwtValidation = await validateToken(token);
     if (jwtValidation.success && jwtValidation.data) {
       // JWT token验证成功，通过用户ID获取用户信息
       user = await getUserById(jwtValidation.data.userId);
-    } else {
-      // JWT验证失败，尝试明文token验证（向后兼容）
-      user = await findUserByToken(token);
     }
     
     if (!user) {
@@ -42,8 +39,8 @@ export async function GET(request: NextRequest) {
       );
     }
     
-    // 获取该用户的充值记录（使用用户的实际token）
-    const records = await getRechargeRecordsByToken(user.token);
+    // 获取该用户的充值记录（使用用户名）
+    const records = await getRechargeRecordsByUsername(user.username);
     
     return NextResponse.json({
       success: true,

@@ -1,37 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { findUserByToken, updateUserBalance, addRechargeRecord } from '@/lib/db'
+import { getUserById, updateUserBalanceById, addRechargeRecord } from '@/lib/db'
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { token, amount } = body
+    const { userId, amount } = body
 
-    if (!token || !amount || amount <= 0) {
+    if (!userId || !amount || amount <= 0) {
       return NextResponse.json(
         { success: false, message: '参数错误' },
         { status: 400 }
       )
     }
 
-    const user = await findUserByToken(token)
+    const user = await getUserById(userId)
     if (!user) {
       return NextResponse.json(
-        { success: false, message: '无效的token' },
+        { success: false, message: '无效的用户ID' },
         { status: 401 }
       )
     }
 
     // 更新用户余额
-    const currentBalance = parseFloat(user.balance)
+    const currentBalance = Number(user.balance)
     const newBalance = currentBalance + parseFloat(amount)
-    const success = await updateUserBalance(token, newBalance)
+    const success = await updateUserBalanceById(userId, newBalance)
     
     if (success) {
       // 添加充值记录
       const recordAdded = await addRechargeRecord(
-        user.id,
+        user._id.toString(),
         user.username,
-        token,
         parseFloat(amount),
         currentBalance,
         newBalance,

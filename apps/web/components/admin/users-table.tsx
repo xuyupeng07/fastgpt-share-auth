@@ -8,7 +8,7 @@ import { Button } from "@workspace/ui/components/button"
 import { useStats } from "@/contexts/stats-context"
 
 interface User {
-  id: number
+  id: string // MongoDB的_id字段
   username: string
   password: string
   token: string
@@ -45,7 +45,7 @@ export function UsersTable() {
     }
   }
 
-  const handleStatusChange = async (userId: number, newStatus: 'active' | 'inactive') => {
+  const handleStatusChange = async (userId: string, newStatus: 'active' | 'inactive') => {
     try {
       const response = await fetch('/api/users/status', {
         method: 'PUT',
@@ -96,10 +96,8 @@ export function UsersTable() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>ID</TableHead>
-                <TableHead>用户名</TableHead>
-                <TableHead>Token</TableHead>
-                <TableHead>UID</TableHead>
+                <TableHead className="pl-6 w-24">ID</TableHead>
+                <TableHead className="w-32">用户名</TableHead>
                 <TableHead>余额</TableHead>
                 <TableHead>状态</TableHead>
                 <TableHead>操作</TableHead>
@@ -108,19 +106,15 @@ export function UsersTable() {
             <TableBody>
               {users.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
+                  <TableCell colSpan={5} className="text-center py-8">
                     暂无用户数据
                   </TableCell>
                 </TableRow>
               ) : (
                 users.map((user) => (
                   <TableRow key={user.id}>
-                    <TableCell>{user.id}</TableCell>
+                    <TableCell className="font-medium pl-6">{user.id}</TableCell>
                     <TableCell className="font-medium">{user.username}</TableCell>
-                    <TableCell className="font-mono text-xs break-all">
-                      {user.token || '-'}
-                    </TableCell>
-                    <TableCell className="font-mono text-sm">{user.uid || '-'}</TableCell>
                     <TableCell>
                       ¥{(parseFloat(String(user.balance)) || 0).toFixed(2)}
                     </TableCell>
