@@ -1,11 +1,14 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@workspace/ui/components/card"
 import { Button } from "@workspace/ui/components/button"
-import { ExternalLink, User, LogOut, RefreshCw, LogIn } from "lucide-react"
-import { ThemeToggle } from "@/components/theme-toggle"
-import Image from "next/image"
+import { Input } from "@workspace/ui/components/input"
+import { ExternalLink, LogIn } from "lucide-react"
+import { Header } from "@/components/Header"
+import { WorkflowGrid } from "@/components/WorkflowGrid"
+import { WorkflowCard } from "@/components/WorkflowCard"
+import { Workflow } from "@/lib/types"
 
 interface LinkConfig {
   id: number
@@ -14,10 +17,27 @@ interface LinkConfig {
   description?: string
 }
 
+type SortOption = 'latest' | 'popular' | 'mostUsed'
+
+const categories = [
+  '全部',
+  '客服助手',
+  '办公助手', 
+  '编程助手',
+  '学习助手',
+  '生活助手',
+  '创作助手',
+  '其他'
+]
+
 export default function HomePage() {
   const [userInfo, setUserInfo] = useState<any>(null)
   const [authToken, setAuthToken] = useState<string | null>(null)
   const [links, setLinks] = useState<LinkConfig[]>([])
+  const [workflows, setWorkflows] = useState<Workflow[]>([])
+  const [searchQuery, setSearchQuery] = useState('')
+  const [sortBy, setSortBy] = useState<SortOption>('latest')
+  const [selectedCategory, setSelectedCategory] = useState('全部')
   const [isLoading, setIsLoading] = useState(true)
 
   // 获取工作流链接配置
@@ -44,6 +64,75 @@ export default function HomePage() {
       console.error('获取工作流配置失败:', error)
     }
   }
+
+  // 获取工作流数据（从MongoDB数据库）
+  const fetchWorkflows = async () => {
+    try {
+      const response = await fetch('/api/workflows/cards')
+      const result = await response.json()
+      
+      if (result.success) {
+        setWorkflows(result.data)
+      } else {
+        console.error('获取工作流数据失败:', result.message)
+        // 如果API失败，设置空数组
+        setWorkflows([])
+      }
+    } catch (error) {
+      console.error('获取工作流数据失败:', error)
+      // 如果请求失败，设置空数组
+      setWorkflows([])
+    }
+  }
+
+  // 工作流操作处理函数
+  const handleTryWorkflow = (workflow: Workflow) => {
+    console.log('尝试工作流:', workflow.name)
+  }
+
+  const handleLike = (workflowId: string) => {
+    console.log('点赞工作流:', workflowId)
+  }
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query)
+  }
+
+  // 过滤和排序工作流
+  const filteredAndSortedWorkflows = useMemo(() => {
+    let filtered = workflows
+
+    // 搜索过滤
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase()
+      filtered = filtered.filter(
+        workflow =>
+          workflow.name.toLowerCase().includes(query) ||
+          workflow.description.toLowerCase().includes(query) ||
+          workflow.author.name.toLowerCase().includes(query)
+      )
+    }
+
+    // 分类过滤
+    if (selectedCategory !== '全部') {
+      filtered = filtered.filter(workflow => workflow.category === selectedCategory)
+    }
+
+    // 排序
+    const sorted = [...filtered].sort((a, b) => {
+      switch (sortBy) {
+        case 'popular':
+          return (b.likeCount || 0) - (a.likeCount || 0)
+        case 'mostUsed':
+          return (b.usageCount || 0) - (a.usageCount || 0)
+        case 'latest':
+        default:
+          return b.id.localeCompare(a.id) // 简单的按ID排序，实际项目中应该用创建时间
+      }
+    })
+
+    return sorted
+  }, [workflows, searchQuery, selectedCategory, sortBy])
 
   // 获取最新用户信息
   const refreshUserInfo = async (token: string) => {
@@ -116,6 +205,9 @@ export default function HomePage() {
         
         // 获取工作流链接配置（无论是否登录都显示）
         await fetchLinks()
+        
+        // 获取工作流数据
+        await fetchWorkflows()
       } catch (error) {
         console.error('页面初始化失败:', error)
       } finally {
@@ -169,87 +261,19 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-7xl mx-auto space-y-8">
-        {/* 头部 */}
-        <div className="flex justify-between items-center bg-card rounded-lg p-6 shadow-sm border">
-          <div className="flex items-center space-x-4">
-            <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center">
-              <Image 
-                src="/fastgpt.svg" 
-                alt="FastGPT" 
-                width={32} 
-                height={32} 
-              />
-            </div>
-            <div>
-              {userInfo ? (
-                <>
-                  <div className="flex items-center space-x-3">
-                    <h1 className="text-2xl font-bold text-foreground">
-                      Welcome, {userInfo.username}
-                    </h1>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => authToken && refreshUserInfo(authToken)}
-                      className="h-8 w-8 p-0"
-                    >
-                      <RefreshCw className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <p className="text-lg font-medium text-muted-foreground">
-                    积分余额: {parseFloat(userInfo.balance || '0').toFixed(2)} Credits
-                  </p>
-                </>
-              ) : (
-                <>  
-                  <h1 className="text-2xl font-bold text-foreground">
-                    FastGPT Exchange Platform (FGX)
-                  </h1>
-                  <p className="text-lg font-medium text-muted-foreground">
-                    Powering AI Innovation Through Exchange
-                  </p>
-                </>
-              )}
-            </div>
-          </div>
-          <div className="flex items-center space-x-3">
-            {userInfo ? (
-              <>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => window.location.href = '/profile'}
-                >
-                  <User className="h-4 w-4 mr-2" />
-                  个人中心
-                </Button>
-                <ThemeToggle />
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleLogout}
-                >
-                  <LogOut className="h-4 w-4 mr-2" />
-                  退出登录
-                </Button>
-              </>
-            ) : (
-              <>
-                <ThemeToggle />
-                <Button 
-                  variant="default" 
-                  size="sm" 
-                  onClick={handleLogin}
-                >
-                  <LogIn className="h-4 w-4 mr-2" />
-                  登录
-                </Button>
-              </>
-            )}
-          </div>
-        </div>
+    <div className="min-h-screen bg-background">
+      {/* Header组件 */}
+      <Header 
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        userInfo={userInfo}
+        onLogin={handleLogin}
+        onLogout={handleLogout}
+        onRefreshUserInfo={() => authToken && refreshUserInfo(authToken)}
+      />
+      
+      <div className="container mx-auto px-4 py-8">
+
 
         {/* 主要内容区域 */}
         <div className="text-center mb-12">
@@ -266,47 +290,97 @@ export default function HomePage() {
             <span className="bg-primary/10 text-primary px-3 py-1 rounded-full">🤝 生态共建</span>
           </div>
           {!userInfo && (
-            <p className="text-orange-600 dark:text-orange-400 text-sm mt-2">
-              提示：需要登录后才能使用完整功能
-            </p>
+            <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4 max-w-2xl mx-auto mb-8">
+              <p className="text-orange-600 dark:text-orange-400 text-sm">
+                💡 提示：需要登录后才能使用完整功能
+              </p>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleLogin}
+                className="mt-2"
+              >
+                <LogIn className="h-4 w-4 mr-2" />
+                立即登录
+              </Button>
+            </div>
           )}
         </div>
         
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 max-w-6xl mx-auto">
-          {links.map((link, index) => (
-            <Card key={index} className="group hover:shadow-lg transition-all duration-300">
-              <CardContent className="p-8 text-center">
-                <div className="mb-6">
-                  <div className="w-24 h-24 mx-auto mb-6 flex items-center justify-center bg-muted rounded-lg">
-                    <Image 
-                      src="/fastgpt.svg" 
-                      alt="FastGPT" 
-                      width={80} 
-                      height={80} 
-                      className="group-hover:scale-110 transition-transform duration-300"
-                    />
-                  </div>
-                  <h3 className="font-bold text-xl mb-3 text-foreground">
-                    {link.name}
-                  </h3>
-                  <p className="text-muted-foreground text-sm leading-relaxed mb-6">
-                     {link.description || '高质量AI工作流，助力您的创新之旅'}
-                   </p>
-                </div>
-                <Button 
-                  className="w-20" 
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleLinkClick(link.url)
-                  }}
-                  disabled={!userInfo}
-                >
-                  {userInfo ? 'Try' : '登录使用'}
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
+        {/* 筛选区域 */}
+        <div className="space-y-6 mb-8">
+
+          {/* 排序按钮 */}
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant={sortBy === 'latest' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setSortBy('latest')}
+            >
+              最新
+            </Button>
+            <Button
+              variant={sortBy === 'popular' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setSortBy('popular')}
+            >
+              最受欢迎
+            </Button>
+            <Button
+              variant={sortBy === 'mostUsed' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setSortBy('mostUsed')}
+            >
+              使用最多
+            </Button>
+          </div>
+
+          {/* 分类筛选 */}
+          <div className="flex flex-wrap gap-2">
+            {categories.map((category) => (
+              <Button
+                key={category}
+                variant={selectedCategory === category ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setSelectedCategory(category)}
+              >
+                {category}
+              </Button>
+            ))}
+          </div>
+
+          {/* 搜索结果提示 */}
+          {searchQuery && (
+            <div className="text-sm text-gray-600">
+              找到 {filteredAndSortedWorkflows.length} 个相关工作流
+            </div>
+          )}
         </div>
+        
+        {/* 工作流网格 */}
+        {filteredAndSortedWorkflows.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredAndSortedWorkflows.map((workflow) => (
+              <WorkflowCard
+                key={workflow.id}
+                workflow={workflow}
+                onTryWorkflow={handleTryWorkflow}
+                onLike={handleLike}
+                authToken={authToken}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <div className="text-gray-400 mb-2">
+              <svg className="mx-auto h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6-4h6m2 5.291A7.962 7.962 0 0112 15c-2.34 0-4.47.881-6.08 2.33" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-1">没有找到工作流</h3>
+            <p className="text-gray-500">尝试调整搜索条件或分类筛选</p>
+          </div>
+        )}
       </div>
     </div>
   )
