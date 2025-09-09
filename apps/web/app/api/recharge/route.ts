@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 更新用户余额
-    const currentBalance = Number(user.balance)
+    const currentBalance = Math.max(0, Number(user.balance)) // 确保余额不为负数
     const newBalance = currentBalance + parseFloat(amount)
     const success = await updateUserBalanceById(userId, newBalance)
     

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { findUserByToken, getUserById } from "@/lib/db";
+import { getUserById } from "@/lib/db";
 import { validateToken } from "@/lib/jwt";
 
 export async function POST(request: NextRequest) {
@@ -25,7 +25,8 @@ export async function POST(request: NextRequest) {
     }
     
     // 从JWT token中获取用户信息
-    const user = await getUserById(validationResult.data.userId);
+    const userId = typeof validationResult.data.userId === 'string' ? validationResult.data.userId : validationResult.data.userId.toString();
+    const user = await getUserById(userId);
     if (!user) {
       return NextResponse.json(
         { success: false, message: '用户不存在' },
@@ -34,7 +35,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 检查用户余额，只有余额大于0时才能开始对话
-    const balance = parseFloat(user.balance);
+    const balance = Number(user.balance);
     if (balance <= 0) {
       console.log(`用户 ${user.username} 余额不足: ${balance}`);
       return NextResponse.json(
@@ -57,7 +58,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
-        uid: user.uid,
         balance: user.balance
       }
     });

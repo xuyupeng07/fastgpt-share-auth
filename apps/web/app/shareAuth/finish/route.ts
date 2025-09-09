@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
-import { findUserByToken, updateUserBalance, updateUserBalanceById, addConsumptionRecord, getUserById } from "@/lib/db";
+import { updateUserBalanceById, addConsumptionRecord, getUserById } from "@/lib/db";
 import { validateToken } from "@/lib/jwt";
 
 export async function POST(request: NextRequest) {
@@ -18,19 +18,20 @@ export async function POST(request: NextRequest) {
 
     // 验证JWT token
     const jwtValidation = await validateToken(token);
-    let user = null;
     
-    if (jwtValidation.success && jwtValidation.data) {
-      // JWT token验证成功，通过用户ID获取用户信息
-      user = await getUserById(jwtValidation.data.userId.toString());
-    } else {
-      // JWT验证失败，尝试明文token验证（向后兼容）
-      user = await findUserByToken(token);
+    if (!jwtValidation.success || !jwtValidation.data) {
+      return NextResponse.json(
+        { success: false, message: '身份验证失败，无效的token' }
+      );
     }
+    
+    // JWT token验证成功，通过用户ID获取用户信息
+    const user = await getUserById(jwtValidation.data.userId.toString());
     
     if (!user) {
       return NextResponse.json(
-        { success: false, message: '身份验证失败，无效的token' }
+        { success: false, message: '用户不存在' },
+        { status: 404 }
       );
     }
 
@@ -79,26 +80,28 @@ export async function POST(request: NextRequest) {
       try {
         await session.withTransaction(async () => {
           // 扣除用户余额
-          await updateUserBalanceById(user._id.toString(), user.balance - cost);
+          await updateUserBalanceById(user!._id.toString(), user!.balance - cost, session);
           
           // 记录消费记录
           await addConsumptionRecord(
-            user._id.toString(),
-            user.username,
+            user!._id.toString(),
+            user!.username,
             totalTokens,
             totalPoints,
             cost,
-            responseData
+            responseData,
+            session,
+            token
           );
         });
         
         await session.endSession();
         
         // 获取更新后的用户信息
-        const updatedUser = await getUserById(user._id.toString());
+        const updatedUser = await getUserById(user!._id.toString());
         const newBalance = updatedUser?.balance || 0;
         
-        console.log(`用户 ${user.username} 余额扣除成功，剩余余额: ${newBalance}`);
+        console.log(`用户 ${user!.username} 余额扣除成功，剩余余额: ${newBalance}`);
         
         return NextResponse.json({
           success: true,

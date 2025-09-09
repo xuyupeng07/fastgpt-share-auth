@@ -11,9 +11,7 @@ async function ensureConnection() {
   await connectDB();
 }
 
-// 根据token查找用户
-// 注意：token字段已从用户模型中移除
-// 如果需要根据token查找用户，请使用其他标识符
+
 
 // 根据用户名和密码验证用户
 export async function authenticateUser(username: string, password: string) {
@@ -21,7 +19,7 @@ export async function authenticateUser(username: string, password: string) {
     await ensureConnection();
     // 先根据用户名查找用户
     const user = await UserModel.findOne({ username })
-      .select('_id username password token uid email balance status is_admin created_at')
+      .select('_id username password email balance status is_admin created_at')
       .lean();
     
     if (!user) {
@@ -50,8 +48,15 @@ export async function authenticateUser(username: string, password: string) {
 export async function getUserById(userId: string | number) {
   try {
     await ensureConnection();
+    
+    // 验证ObjectId格式
+    if (!userId || (typeof userId === 'string' && (userId.length !== 24 || !/^[0-9a-fA-F]{24}$/.test(userId)))) {
+      console.error('无效的用户ID格式:', userId);
+      return null;
+    }
+    
     const user = await UserModel.findById(userId)
-      .select('_id username token uid email balance status is_admin created_at')
+      .select('_id username email balance status is_admin created_at')
       .lean();
     return user;
   } catch (error) {
@@ -65,7 +70,7 @@ export async function getAllUsers() {
   try {
     await ensureConnection();
     const users = await UserModel.find({})
-      .select('_id username token uid email balance status is_admin created_at')
+      .select('_id username email balance status is_admin created_at')
       .sort({ created_at: -1 })
       .lean();
     return users;
@@ -95,13 +100,13 @@ export async function updateUserStatus(userId: string | number, status: 'active'
 // 请使用updateUserBalanceById函数通过用户ID更新余额
 
 // 更新用户余额（通过用户ID）
-export async function updateUserBalanceById(userId: string | number, newBalance: number) {
+export async function updateUserBalanceById(userId: string | number, newBalance: number, session?: any) {
   try {
     await ensureConnection();
     const result = await UserModel.findByIdAndUpdate(
       userId,
       { balance: newBalance, updated_at: new Date() },
-      { new: true }
+      { new: true, session }
     );
     return !!result;
   } catch (error) {
@@ -117,7 +122,9 @@ export async function addConsumptionRecord(
   tokenUsed: number,
   pointsUsed: number,
   cost: number,
-  responseData?: any
+  responseData?: any,
+  session?: any,
+  token?: string
 ) {
   try {
     await ensureConnection();
@@ -125,13 +132,14 @@ export async function addConsumptionRecord(
     const record = new ConsumptionRecordModel({
       user_id: userId,
       username,
+      token: token || 'unknown', // 提供默认值以满足必需字段要求
       token_used: tokenUsed,
       points_used: pointsUsed,
       cost,
       response_data: responseData
     });
     
-    await record.save();
+    await record.save({ session });
     return true;
   } catch (error) {
     console.error('添加消费记录失败:', error);
@@ -160,11 +168,7 @@ export async function getAllConsumptionRecords() {
   }
 }
 
-// 获取用户消费记录（已废弃，使用getUserConsumptionRecordsByUsername代替）
-export async function getUserConsumptionRecords(token: string) {
-  console.warn('getUserConsumptionRecords已废弃，请使用getUserConsumptionRecordsByUsername');
-  return [];
-}
+
 
 // 根据用户名获取消费记录
 export async function getUserConsumptionRecordsByUsername(username: string) {
@@ -393,6 +397,75 @@ export async function updateWorkflowStatus(id: string | number, status: 'active'
   } catch (error) {
     console.error('更新工作流状态失败:', error);
     throw error;
+  }
+}
+
+// 更新用户密码
+export async function updateUserPassword(userId: string | number, hashedPassword: string) {
+  try {
+    await ensureConnection();
+    const result = await UserModel.findByIdAndUpdate(
+      userId,
+      { password: hashedPassword, updated_at: new Date() },
+      { new: true }
+    );
+    return !!result;
+  } catch (error) {
+    console.error('更新用户密码失败:', error);
+    return false;
+  }
+}
+
+// 更新用户邮箱
+export async function updateUserEmail(userId: string | number, email: string) {
+  try {
+    await ensureConnection();
+    const result = await UserModel.findByIdAndUpdate(
+      userId,
+      { email: email, updated_at: new Date() },
+      { new: true }
+    );
+    return !!result;
+  } catch (error) {
+    console.error('更新用户邮箱失败:', error);
+    return false;
+  }
+}
+
+// 更新用户管理员权限
+export async function updateUserAdmin(userId: string | number, isAdmin: boolean) {
+  try {
+    await ensureConnection();
+    const result = await UserModel.findByIdAndUpdate(
+      userId,
+      { is_admin: isAdmin, updated_at: new Date() },
+      { new: true }
+    );
+    return result !== null;
+  } catch (error) {
+    console.error('更新用户管理员权限失败:', error);
+    return false;
+  }
+}
+
+// 删除用户
+export async function deleteUser(userId: string | number) {
+  try {
+    await ensureConnection();
+    
+    // 删除用户的消费记录
+    await ConsumptionRecordModel.deleteMany({ userId: userId });
+    
+    // 删除用户的充值记录
+    await RechargeRecordModel.deleteMany({ userId: userId });
+    
+    // 删除用户
+    const result = await UserModel.findByIdAndDelete(userId);
+    
+    return !!result;
+  } catch (error) {
+    console.error('删除用户失败:', error);
+    return false;
   }
 }
 

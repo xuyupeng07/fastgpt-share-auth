@@ -49,15 +49,15 @@ export function LoginForm() {
       if (data.success) {
         showAlert("登录成功！正在跳转...", "success")
         // 存储token到localStorage
-        localStorage.setItem("authToken", data.authToken)
+        localStorage.setItem("authToken", data.data.token)
         localStorage.setItem("userInfo", JSON.stringify(data.data))
         
         // 设置cookie供中间件使用
-        document.cookie = `authToken=${data.authToken}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`
+        document.cookie = `authToken=${data.data.token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`
         
-        // 跳转到链接选择页面
+        // 跳转到根地址
         setTimeout(() => {
-          window.location.href = '/select-link'
+          window.location.href = '/'
         }, 1000)
       } else {
         showAlert(data.message || "登录失败")

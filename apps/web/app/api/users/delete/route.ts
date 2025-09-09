@@ -1,41 +1,17 @@
 import { NextResponse } from "next/server"
-import { getAllUsers, getUserById, deleteUser } from '@/lib/db'
-
-export async function GET() {
-  try {
-    const records = await getAllUsers();
-    const recordsArray = Array.isArray(records) ? records : [];
-    
-    // 确保每个用户都有id字段
-    const usersWithId = recordsArray.map(user => ({
-      ...user,
-      id: user._id.toString() // 添加MongoDB的_id字段作为id
-    }));
-    
-    return NextResponse.json({
-      success: true,
-      users: usersWithId
-    });
-  } catch (error) {
-    console.error('获取用户列表失败:', error);
-    return NextResponse.json({
-      success: false,
-      message: '获取用户列表失败'
-    }, { status: 500 });
-  }
-}
+import { getUserById, deleteUser } from '@/lib/db'
 
 export async function DELETE(request: Request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('id');
+    // 从请求体获取userId
+    const body = await request.json();
+    const { userId } = body;
     
-    // 验证用户ID格式
-    if (!userId || userId.trim() === '') {
-      return NextResponse.json({ 
-        success: false, 
-        error: '无效的用户ID' 
-      }, { status: 400 })
+    if (!userId || userId.toString().trim() === '') {
+      return NextResponse.json(
+        { success: false, error: '用户ID不能为空' },
+        { status: 400 }
+      );
     }
 
     // 检查用户是否存在

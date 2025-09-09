@@ -309,28 +309,26 @@ export default function WorkflowsTable() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="pl-6">ID</TableHead>
-              <TableHead>工作流名称</TableHead>
-              <TableHead>描述</TableHead>
-              <TableHead>免登录链接</TableHead>
-              <TableHead>状态</TableHead>
-              <TableHead>创建时间</TableHead>
-              <TableHead>操作</TableHead>
+              <TableHead className="w-40">工作流名称</TableHead>
+              <TableHead className="w-48">描述</TableHead>
+              <TableHead className="w-48">免登录链接</TableHead>
+              <TableHead className="w-20 text-center">状态</TableHead>
+              <TableHead className="w-40">创建时间</TableHead>
+              <TableHead className="w-32 text-center">操作</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {workflows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                   暂无工作流数据
                 </TableCell>
               </TableRow>
             ) : (
               workflows.map((workflow) => (
                 <TableRow key={workflow.id}>
-                  <TableCell className="pl-6">{workflow.id}</TableCell>
-                  <TableCell className="font-medium">{workflow.name}</TableCell>
-                  <TableCell className="max-w-xs truncate" title={workflow.description}>
+                  <TableCell className="font-medium text-gray-900">{workflow.name}</TableCell>
+                  <TableCell className="max-w-xs truncate text-gray-600" title={workflow.description}>
                     {workflow.description}
                   </TableCell>
                   <TableCell className="max-w-xs truncate">
@@ -338,13 +336,13 @@ export default function WorkflowsTable() {
                       href={workflow.no_login_url} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="text-blue-600 hover:text-blue-800 underline"
+                      className="text-blue-600 hover:text-blue-800 underline text-sm"
                       title={workflow.no_login_url}
                     >
                       {workflow.no_login_url}
                     </a>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="text-center">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                       workflow.status === 'active' 
                         ? 'bg-green-100 text-green-800' 
@@ -353,8 +351,8 @@ export default function WorkflowsTable() {
                       {workflow.status === 'active' ? '启用' : '禁用'}
                     </span>
                   </TableCell>
-                  <TableCell>{formatDate(workflow.created_at)}</TableCell>
-                  <TableCell>
+                  <TableCell className="text-sm text-gray-500">{formatDate(workflow.created_at)}</TableCell>
+                  <TableCell className="text-center">
                     <div className="flex items-center gap-2">
                       <Button
                         variant="outline"

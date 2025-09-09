@@ -22,29 +22,26 @@ export async function POST(request: NextRequest) {
       
       console.log(`用户 ${username} 登录成功`);
       
-      // 生成安全的JWT token
-      const jwtToken = generateSecureToken(
-        user.id, // MongoDB的_id转换为字符串，但JWT期望number类型
-        user.username,
-        user.uid,
-        undefined, // shareId可选
-        ['read', 'chat'] // 默认权限
-      );
-      
-      console.log(`为用户 ${username} 生成JWT token`);
-      
+      const token = generateSecureToken(
+      user._id.toString(),
+      user.username,
+      undefined, // shareId
+      ['read', 'chat'] // 默认权限
+    );
+
       return NextResponse.json({
         success: true,
         message: '登录成功',
-        authToken: jwtToken, // 返回JWT token而不是明文token
         data: {
-          uid: user.uid,
-          username: user.username,
-          balance: user.balance || 0,
-          role: user.is_admin ? 'admin' : 'user',
-          email: user.email || '',
-          status: user.status || 'active',
-          is_admin: user.is_admin
+          token,
+          user: {
+            id: user._id,
+            username: user.username,
+            email: user.email,
+            balance: user.balance,
+            status: user.status,
+            is_admin: user.is_admin
+          }
         }
       });
     } else {

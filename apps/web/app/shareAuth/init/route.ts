@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authenticateUser, findUserByToken } from "@/lib/db";
+import { authenticateUser } from "@/lib/db";
 import { generateSecureToken, validateToken } from "@/lib/jwt";
 
 export async function POST(request: NextRequest) {
@@ -18,37 +18,13 @@ export async function POST(request: NextRequest) {
           success: true,
           authToken: token, // 返回原JWT token
           data: {
-            uid: jwtValidation.data.uid,
+            userId: jwtValidation.data.userId,
             username: jwtValidation.data.username
           }
         });
       }
       
-      // JWT验证失败，尝试明文token验证
-      user = await findUserByToken(token);
-      if (user) {
-        console.log(`明文token验证成功: ${user.username}`);
-        
-        // 为明文token用户生成新的JWT token
-        const jwtToken = generateSecureToken(
-          user.id,
-          user.username,
-          user.uid,
-          undefined, // 没有特定的shareId
-          ['read', 'chat'] // 默认权限
-        );
-        
-        return NextResponse.json({
-          success: true,
-          authToken: jwtToken, // 返回新生成的JWT token
-          data: {
-            uid: user.uid,
-            username: user.username
-          }
-        });
-      }
-      
-      // 两种验证都失败，但不输出日志避免噪音
+      // JWT验证失败，返回错误
       return NextResponse.json(
         { success: false, message: '身份验证失败，无效的token' }
       );
@@ -63,9 +39,8 @@ export async function POST(request: NextRequest) {
         
         // 生成安全的JWT token
         const jwtToken = generateSecureToken(
-          user.id,
+          user._id.toString(),
           user.username,
-          user.uid,
           undefined, // shareId可选
           ['read', 'chat'] // 默认权限
         );
@@ -76,7 +51,7 @@ export async function POST(request: NextRequest) {
           success: true,
           authToken: jwtToken, // 返回JWT token
           data: {
-            uid: user.uid,
+            userId: user._id.toString(),
             username: user.username
           }
         });

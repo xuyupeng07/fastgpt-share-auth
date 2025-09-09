@@ -4,11 +4,13 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card"
 
 interface User {
+  id: number
   username: string
-  token: string
-  uid: string
-  email?: string
+  password: string
+  email: string
   balance: number
+  status: 'active' | 'inactive'
+  is_admin: boolean
 }
 
 export function TestUsers() {
@@ -57,13 +59,11 @@ export function TestUsers() {
           const password = user.username === "admin" ? "admin123" : "123456"
           return (
             <div
-              key={user.uid}
+              key={user.id}
               className="rounded-md border bg-muted/50 p-3 text-xs space-y-1"
             >
               <div className="font-medium">{user.username}</div>
               <div className="text-muted-foreground">密码: {password}</div>
-              <div className="text-muted-foreground">Token: {user.token}</div>
-              <div className="text-muted-foreground">UID: {user.uid}</div>
             </div>
           )
         })}

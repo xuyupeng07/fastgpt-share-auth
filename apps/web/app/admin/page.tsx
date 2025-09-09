@@ -13,7 +13,7 @@ export default function AdminPage() {
         {/* Header */}
         <header className="border-b">
           <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-            <h1 className="text-2xl font-bold">FastGPT 后台管理</h1>
+            <h1 className="text-2xl font-bold">FGX 后台管理</h1>
             <ThemeToggle />
           </div>
         </header>

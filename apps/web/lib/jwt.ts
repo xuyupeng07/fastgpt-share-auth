@@ -9,7 +9,6 @@ const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '2h';
 
 // Token payload接口
 export interface TokenPayload {
-  uid: string;
   userId: string | number; // 支持字符串和数字类型
   username: string;
   shareId?: string;
@@ -26,7 +25,6 @@ export interface TokenValidationResult {
   success: boolean;
   message?: string;
   data?: {
-    uid: string;
     userId: string | number; // 支持字符串和数字类型
     username: string;
     permissions?: string[];
@@ -43,7 +41,6 @@ const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
  * 生成安全的JWT token
  * @param userId 用户ID
  * @param username 用户名
- * @param uid 用户唯一标识
  * @param shareId 分享链接ID（可选）
  * @param permissions 权限列表（可选）
  * @returns JWT token字符串
@@ -51,7 +48,6 @@ const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
 export function generateSecureToken(
   userId: string | number, // 支持字符串和数字类型
   username: string,
-  uid: string,
   shareId?: string,
   permissions: string[] = []
 ): string {
@@ -60,7 +56,6 @@ export function generateSecureToken(
   const payload = {
     userId,
     username,
-    uid,
     shareId,
     permissions,
     iat: Math.floor(Date.now() / 1000)
@@ -110,7 +105,7 @@ export async function validateToken(
     
     // 4. 频率限制检查
     if (clientIP) {
-      const rateLimitKey = `${decoded.uid}:${clientIP}`;
+      const rateLimitKey = `${decoded.userId}:${clientIP}`;
       const rateLimitOk = checkRateLimit(rateLimitKey);
       if (!rateLimitOk) {
         return { success: false, message: '访问频率过高，请稍后再试' };
@@ -120,7 +115,6 @@ export async function validateToken(
     return {
       success: true,
       data: {
-        uid: decoded.uid,
         userId: decoded.userId,
         username: decoded.username,
         permissions: decoded.permissions
@@ -185,7 +179,6 @@ export function refreshToken(oldToken: string): string | null {
     return generateSecureToken(
       decoded.userId,
       decoded.username,
-      decoded.uid,
       decoded.shareId,
       decoded.permissions
     );

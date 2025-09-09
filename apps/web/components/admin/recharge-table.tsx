@@ -300,13 +300,13 @@ export function RechargeTable() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="pl-6">用户名</TableHead>
-                <TableHead>充值金额</TableHead>
-                <TableHead>充值前余额</TableHead>
-                <TableHead>充值后余额</TableHead>
-                <TableHead>状态</TableHead>
-                <TableHead>时间</TableHead>
-                <TableHead>备注</TableHead>
+                <TableHead className="pl-6 w-36">用户名</TableHead>
+                <TableHead className="w-32 text-center">充值金额</TableHead>
+                <TableHead className="w-32 text-center">充值前余额</TableHead>
+                <TableHead className="w-32 text-center">充值后余额</TableHead>
+                <TableHead className="w-24 text-center">状态</TableHead>
+                <TableHead className="w-44">时间</TableHead>
+                <TableHead className="w-32">备注</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -322,24 +322,30 @@ export function RechargeTable() {
                     <TableCell className="font-medium pl-6">
                       {record.username || '-'}
                     </TableCell>
-                    <TableCell className="font-medium text-green-600">
-                      +¥{record.amount.toFixed(2)}
+                    <TableCell className="text-center">
+                      <span className="font-semibold text-green-600">
+                        +¥{record.amount.toFixed(2)}
+                      </span>
                     </TableCell>
-                    <TableCell>
-                      ¥{record.balance_before.toFixed(2)}
+                    <TableCell className="text-center">
+                      <span className="font-mono text-gray-600">
+                        ¥{record.balance_before.toFixed(2)}
+                      </span>
                     </TableCell>
-                    <TableCell className="font-medium">
-                      ¥{record.balance_after.toFixed(2)}
+                    <TableCell className="text-center">
+                      <span className="font-semibold text-blue-600">
+                        ¥{record.balance_after.toFixed(2)}
+                      </span>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-center">
                       <Badge variant={getStatusBadgeVariant(record.status)}>
                         {getStatusText(record.status)}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-sm">
+                    <TableCell className="text-sm text-gray-500">
                       {formatDate(record.created_at)}
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
+                    <TableCell className="text-sm text-gray-600 max-w-32 truncate" title={record.remark || '-'}>
                       {record.remark || '-'}
                     </TableCell>
                   </TableRow>

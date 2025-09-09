@@ -179,12 +179,12 @@ export function ConsumptionTable() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="pl-6">用户名</TableHead>
-                <TableHead>Token使用</TableHead>
-                <TableHead>积分消费</TableHead>
-                <TableHead>消费金额</TableHead>
-                <TableHead>时间</TableHead>
-                <TableHead>操作</TableHead>
+                <TableHead className="pl-6 w-36">用户名</TableHead>
+                <TableHead className="w-32 text-center">Token使用</TableHead>
+                <TableHead className="w-32 text-center">积分消费</TableHead>
+                <TableHead className="w-32 text-center">消费金额</TableHead>
+                <TableHead className="w-44">时间</TableHead>
+                <TableHead className="w-24 text-center">操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -197,20 +197,26 @@ export function ConsumptionTable() {
               ) : (
                 records.map((record) => (
                   <TableRow key={record.id}>
-                    <TableCell className="pl-6">{record.username}</TableCell>
-                    <TableCell>
-                      {record.token_used || 0}
+                    <TableCell className="pl-6 font-medium">{record.username}</TableCell>
+                    <TableCell className="text-center">
+                      <span className="font-mono text-blue-600 font-semibold">
+                        {(record.token_used || 0).toLocaleString()}
+                      </span>
                     </TableCell>
-                    <TableCell>
-                      {(parseFloat(record.points_used) || 0).toFixed(4)}
+                    <TableCell className="text-center">
+                      <span className="font-mono text-purple-600 font-semibold">
+                        {(parseFloat(record.points_used) || 0).toFixed(4)}
+                      </span>
                     </TableCell>
-                    <TableCell className="font-medium">
-                      ¥{(parseFloat(record.cost) || 0).toFixed(4)}
+                    <TableCell className="text-center">
+                      <span className="font-semibold text-red-600">
+                        ¥{(parseFloat(record.cost) || 0).toFixed(4)}
+                      </span>
                     </TableCell>
-                    <TableCell className="text-sm">
+                    <TableCell className="text-sm text-gray-500">
                       {formatDate(record.created_at)}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-center">
                       <Button
                         variant="outline"
                         size="sm"

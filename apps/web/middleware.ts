@@ -5,7 +5,7 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   
   // 只处理需要认证的页面
-  if (pathname === '/profile' || pathname === '/select-link') {
+  if (pathname === '/profile') {
     const authToken = request.cookies.get('authToken')?.value
     
     if (!authToken) {
@@ -20,5 +20,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/profile', '/select-link']
+  matcher: ['/profile']
 }

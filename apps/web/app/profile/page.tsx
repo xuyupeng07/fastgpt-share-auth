@@ -12,7 +12,6 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 
 interface UserInfo {
   id: string // 添加MongoDB的_id字段
-  uid: string
   username: string
   balance: number
   role: string
@@ -77,7 +76,7 @@ export default function ProfilePage() {
     setUserInfo(userInfo)
     
     // 加载用户数据
-    loadUserData(token)
+    loadUserData(token, userInfo)
     
     // 监听页面焦点事件，当页面重新获得焦点时刷新用户信息
     const handleFocus = () => {
@@ -94,7 +93,7 @@ export default function ProfilePage() {
   }, [])
 
   // 获取最新用户信息
-  const refreshUserInfo = async (token: string) => {
+  const refreshUserInfo = async (token: string): Promise<UserInfo | null> => {
     try {
       const response = await fetch('/api/user/info', {
         headers: {
@@ -112,6 +111,8 @@ export default function ProfilePage() {
           if (data.data.disabled || data.data.status === 'inactive') {
             console.log('用户账户已被禁用')
           }
+          
+          return data.data
         }
       } else if (response.status === 403) {
         // 用户账户被禁用，立即清除登录态并重定向到登录页
@@ -122,39 +123,51 @@ export default function ProfilePage() {
         // 清除cookie
         document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
         window.location.href = '/login?disabled=true'
-        return
+        return null
       } else if (response.status === 401) {
         // token无效，跳转到登录页
         localStorage.removeItem('authToken')
         localStorage.removeItem('userInfo')
+        sessionStorage.clear()
         // 清除cookie
         document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
-        window.location.href = '/login'
+        window.location.href = "/login"
+        return null
       }
     } catch (error) {
-      console.error('获取最新用户信息失败:', error)
+      console.error('刷新用户信息失败:', error)
+      return null
     }
+    return null
   }
 
-  const loadUserData = async (token: string) => {
+  const loadUserData = async (token: string, currentUserInfo?: UserInfo) => {
     try {
       setLoading(true)
       
       // 获取最新用户信息（包括余额）
-      await refreshUserInfo(token)
+      const updatedUserInfo = await refreshUserInfo(token)
+      const userToUse = updatedUserInfo || currentUserInfo
       
-      // 获取消费记录 - 使用token参数，但后端会根据用户名查询
-      const consumptionResponse = await fetch(`/api/consumption/user?token=${token}`)
-      if (consumptionResponse.ok) {
-        const consumptionData = await consumptionResponse.json()
-        setConsumptionRecords(consumptionData.data || [])
-      }
-      
-      // 获取充值记录
-      const rechargeResponse = await fetch(`/api/recharge/user?token=${token}`)
-      if (rechargeResponse.ok) {
-        const rechargeData = await rechargeResponse.json()
-        setRechargeRecords(rechargeData.data || [])
+      // 确保有用户信息后再获取记录
+      if (userToUse?.username) {
+        // 获取消费记录 - 使用username参数
+        const consumptionResponse = await fetch(`/api/consumption/user?username=${userToUse.username}`)
+        if (consumptionResponse.ok) {
+          const consumptionData = await consumptionResponse.json()
+          setConsumptionRecords(consumptionData.data || [])
+        } else {
+          console.error('获取消费记录失败:', consumptionResponse.status)
+        }
+        
+        // 获取充值记录 - 使用username参数
+        const rechargeResponse = await fetch(`/api/recharge/user?username=${userToUse.username}`)
+        if (rechargeResponse.ok) {
+          const rechargeData = await rechargeResponse.json()
+          setRechargeRecords(rechargeData.data || [])
+        } else {
+          console.error('获取充值记录失败:', rechargeResponse.status)
+        }
       }
     } catch (error) {
       console.error('加载用户数据失败:', error)
@@ -215,11 +228,11 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-background p-4">
-      <div className="max-w-6xl mx-auto space-y-6">
+      <div className="w-full mx-auto space-y-6 px-4">
         {/* 头部导航 */}
         <div className="flex justify-between items-center">
           <div className="flex items-center space-x-3">
-            <Button variant="outline" size="sm" onClick={() => window.location.href = '/select-link'}>
+            <Button variant="outline" size="sm" onClick={() => window.location.href = '/'}>
               <ArrowLeft className="h-4 w-4 mr-2" />
               返回
             </Button>
@@ -264,7 +277,7 @@ export default function ProfilePage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">用户名</p>
                 <p className="font-medium">{userInfo.username}</p>
@@ -273,10 +286,7 @@ export default function ProfilePage() {
                 <p className="text-sm text-muted-foreground">数据库ID</p>
                 <p className="font-medium text-xs">{userInfo.id}</p>
               </div>
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">用户ID</p>
-                <p className="font-medium">{userInfo.uid}</p>
-              </div>
+
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">当前余额</p>
                 <p className="font-medium text-lg text-primary">{parseFloat(userInfo.balance?.toString() || '0').toFixed(2)} 积分</p>
@@ -323,7 +333,7 @@ export default function ProfilePage() {
                   </div>
                 ) : (
                   <div className="rounded-md border">
-                    <Table>
+                    <Table className="table-fixed">
                       <TableHeader>
                         <TableRow>
                           <TableHead>消费时间</TableHead>
@@ -433,21 +443,25 @@ export default function ProfilePage() {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>充值时间</TableHead>
-                          <TableHead>充值金额</TableHead>
-                          <TableHead>充值前余额</TableHead>
-                          <TableHead>充值后余额</TableHead>
-                          <TableHead>备注</TableHead>
+                          <TableHead className="w-[20%] min-w-[160px]">充值时间</TableHead>
+                          <TableHead className="w-[15%] text-center">充值金额</TableHead>
+                          <TableHead className="w-[15%] text-center">充值前余额</TableHead>
+                          <TableHead className="w-[15%] text-center">充值后余额</TableHead>
+                          <TableHead className="w-[35%]">备注</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {rechargeRecords.map((record) => (
                           <TableRow key={record.id}>
-                            <TableCell>{formatDate(record.created_at)}</TableCell>
-                            <TableCell className="text-green-600 font-medium">+{record.amount}</TableCell>
-                            <TableCell>{parseFloat(record.balance_before?.toString() || '0').toFixed(2)}</TableCell>
-                            <TableCell>{parseFloat(record.balance_after?.toString() || '0').toFixed(2)}</TableCell>
-                            <TableCell>{record.remark || '-'}</TableCell>
+                            <TableCell className="w-[20%]">{formatDate(record.created_at)}</TableCell>
+                            <TableCell className="w-[15%] text-center">
+                              <span className="font-semibold text-green-600">
+                                +{record.amount}
+                              </span>
+                            </TableCell>
+                            <TableCell className="w-[15%] text-center">{parseFloat(record.balance_before?.toString() || '0').toFixed(2)}</TableCell>
+                            <TableCell className="w-[15%] text-center">{parseFloat(record.balance_after?.toString() || '0').toFixed(2)}</TableCell>
+                            <TableCell className="w-[35%] text-gray-600">{record.remark || '-'}</TableCell>
                           </TableRow>
                         ))}
                       </TableBody>

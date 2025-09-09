@@ -4,32 +4,34 @@ import { validateToken } from '@/lib/jwt';
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    // 从URL参数或Authorization header获取token
-    const token = searchParams.get('token') || 
-                 request.headers.get('authorization')?.replace('Bearer ', '') ||
+    // 从Authorization header或cookie获取JWT token
+    const token = request.headers.get('authorization')?.replace('Bearer ', '') ||
                  request.cookies.get('authToken')?.value;
     
     if (!token) {
       return NextResponse.json(
-        { success: false, message: '缺少token参数' },
+        { success: false, message: '缺少认证token' },
         { status: 401 }
       );
     }
 
-    // 尝试JWT token验证
+    // JWT token验证
     const jwtValidation = await validateToken(token);
-    let user = null;
     
-    if (jwtValidation.success && jwtValidation.data) {
-      // JWT token验证成功，通过用户ID获取最新信息
-      user = await getUserById(jwtValidation.data.userId);
-    }
-    
-    if (!user) {
+    if (!jwtValidation.success || !jwtValidation.data) {
       return NextResponse.json(
         { success: false, message: '无效的token' },
         { status: 401 }
+      );
+    }
+
+    // JWT token验证成功，通过用户ID获取最新信息
+    const user = await getUserById(jwtValidation.data.userId);
+    
+    if (!user) {
+      return NextResponse.json(
+        { success: false, message: '用户不存在' },
+        { status: 404 }
       );
     }
 
