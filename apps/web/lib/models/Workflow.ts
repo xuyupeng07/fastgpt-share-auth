@@ -5,7 +5,10 @@ export interface IWorkflow extends Document {
   name: string;
   description: string;
   no_login_url: string;
+  category_id?: mongoose.Types.ObjectId;
   status: 'active' | 'inactive';
+  usageCount: number;
+  likeCount: number;
   created_at: Date;
   updated_at: Date;
 }
@@ -26,10 +29,25 @@ const WorkflowSchema: Schema = new Schema({
     required: true,
     trim: true
   },
+  category_id: {
+    type: Schema.Types.ObjectId,
+    ref: 'WorkflowCategory',
+    required: false
+  },
   status: {
     type: String,
     enum: ['active', 'inactive'],
     default: 'active'
+  },
+  usageCount: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  likeCount: {
+    type: Number,
+    default: 0,
+    min: 0
   }
 }, {
   timestamps: {
@@ -41,6 +59,7 @@ const WorkflowSchema: Schema = new Schema({
 // 创建索引
 WorkflowSchema.index({ name: 1 });
 WorkflowSchema.index({ status: 1 });
+WorkflowSchema.index({ category_id: 1 });
 WorkflowSchema.index({ created_at: -1 });
 
 const WorkflowModel = (mongoose.models.Workflow as mongoose.Model<IWorkflow>) || mongoose.model<IWorkflow>('Workflow', WorkflowSchema);

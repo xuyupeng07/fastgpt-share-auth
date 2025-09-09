@@ -19,22 +19,19 @@ interface LinkConfig {
 
 type SortOption = 'latest' | 'popular' | 'mostUsed'
 
-const categories = [
-  '全部',
-  '客服助手',
-  '办公助手', 
-  '编程助手',
-  '学习助手',
-  '生活助手',
-  '创作助手',
-  '其他'
-]
+interface Category {
+  id: string
+  name: string
+  sort_order: number
+}
 
 export default function HomePage() {
   const [userInfo, setUserInfo] = useState<any>(null)
   const [authToken, setAuthToken] = useState<string | null>(null)
   const [links, setLinks] = useState<LinkConfig[]>([])
   const [workflows, setWorkflows] = useState<Workflow[]>([])
+  const [categories, setCategories] = useState<Category[]>([{ id: 'all', name: '全部', sort_order: 0 }])
+  const [categoriesLoading, setCategoriesLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [sortBy, setSortBy] = useState<SortOption>('latest')
   const [selectedCategory, setSelectedCategory] = useState('全部')
@@ -90,8 +87,16 @@ export default function HomePage() {
     console.log('尝试工作流:', workflow.name)
   }
 
-  const handleLike = (workflowId: string) => {
+  const handleLike = (workflowId: string, newLikeCount: number) => {
     console.log('点赞工作流:', workflowId)
+    // 更新本地工作流数据中的点赞数
+    setWorkflows(prevWorkflows => 
+      prevWorkflows.map(workflow => 
+        workflow.id === workflowId 
+          ? { ...workflow, likeCount: newLikeCount }
+          : workflow
+      )
+    )
   }
 
   const handleSearch = (query: string) => {
@@ -108,14 +113,13 @@ export default function HomePage() {
       filtered = filtered.filter(
         workflow =>
           workflow.name.toLowerCase().includes(query) ||
-          workflow.description.toLowerCase().includes(query) ||
-          workflow.author.name.toLowerCase().includes(query)
+          workflow.description.toLowerCase().includes(query)
       )
     }
 
     // 分类过滤
     if (selectedCategory !== '全部') {
-      filtered = filtered.filter(workflow => workflow.category === selectedCategory)
+      filtered = filtered.filter(workflow => workflow.category_name === selectedCategory)
     }
 
     // 排序
@@ -172,6 +176,30 @@ export default function HomePage() {
     }
   }
 
+  // 获取分类数据
+  const fetchCategories = async () => {
+    try {
+      setCategoriesLoading(true)
+      const response = await fetch('/api/categories')
+      if (response.ok) {
+        const result = await response.json()
+        if (result.success && result.data) {
+          const allCategories = [
+            { id: 'all', name: '全部', sort_order: 0 },
+            ...result.data.sort((a: Category, b: Category) => a.sort_order - b.sort_order)
+          ]
+          setCategories(allCategories)
+        } else {
+          console.error('获取分类失败:', result.message)
+        }
+      }
+    } catch (error) {
+      console.error('获取分类失败:', error)
+    } finally {
+      setCategoriesLoading(false)
+    }
+  }
+
   useEffect(() => {
     let cleanup: (() => void) | null = null
     
@@ -208,6 +236,9 @@ export default function HomePage() {
         
         // 获取工作流数据
         await fetchWorkflows()
+        
+        // 获取分类数据
+        await fetchCategories()
       } catch (error) {
         console.error('页面初始化失败:', error)
       } finally {
@@ -277,17 +308,40 @@ export default function HomePage() {
 
         {/* 主要内容区域 */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold mb-4 text-foreground">
-            AI工作流智能体交易生态社区
-          </h1>
-          <p className="text-muted-foreground text-xl max-w-4xl mx-auto leading-relaxed mb-6">
-            为AI开发者、企业和爱好者提供共享、交易和使用AI工作流及智能体的优质环境。通过积分体系，创作者可以获得收益，使用者可以获得高质量解决方案。
-          </p>
-          <div className="flex flex-wrap justify-center gap-4 text-sm text-muted-foreground mb-8">
-            <span className="bg-primary/10 text-primary px-3 py-1 rounded-full">💡 知识共享</span>
-            <span className="bg-primary/10 text-primary px-3 py-1 rounded-full">💰 创作变现</span>
-            <span className="bg-primary/10 text-primary px-3 py-1 rounded-full">🚀 技术创新</span>
-            <span className="bg-primary/10 text-primary px-3 py-1 rounded-full">🤝 生态共建</span>
+          <div className="mb-8 relative">
+            <img 
+              src="/headerImage.png" 
+              alt="AI工作流智能体交易生态社区" 
+              className="w-full mx-auto rounded-lg shadow-lg"
+            />
+<div className="absolute bottom-2 left-14 md:bottom-4 md:left-22 lg:bottom-6 lg:left-48">
+  <a 
+    href="https://fastgpt.cn/zh" 
+    target="_blank" 
+    rel="noopener noreferrer"
+    className="group relative flex items-center justify-center px-3 py-2 sm:px-4 sm:py-2.5 md:px-6 md:py-3 lg:px-8 lg:py-3.5 transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer"
+  >
+    {/* 外层光环 - 呼吸效果 */}
+    <div className="absolute -inset-0.5 sm:-inset-1 md:-inset-1.5 bg-gradient-to-r from-blue-400/30 via-white/20 to-purple-400/30 rounded-lg sm:rounded-xl md:rounded-2xl blur-sm sm:blur-md animate-pulse opacity-60 group-hover:opacity-100 transition-all duration-500"></div>
+    
+    {/* 透明磨砂背景 */}
+    <div className="absolute inset-0 backdrop-blur-xl sm:backdrop-blur-2xl rounded-lg sm:rounded-xl border border-white/20 group-hover:border-white/40 group-hover:bg-white/5 transition-all duration-300 overflow-hidden">
+      {/* 金属扫光效果 */}
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/0 to-transparent group-hover:via-white/40 group-hover:translate-x-full transition-all duration-800 -translate-x-full"></div>
+    </div>
+    
+    {/* 内层高光 */}
+    <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent rounded-lg sm:rounded-xl group-hover:from-white/20 transition-all duration-300"></div>
+    
+    {/* 文字 */}
+    <span className="relative text-white group-hover:text-white text-xs sm:text-sm md:text-base lg:text-lg font-bold tracking-[0.1em] sm:tracking-[0.15em] transition-all duration-300 drop-shadow-lg">
+      免费使用
+    </span>
+    
+    {/* 底部微光 */}
+    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-3/4 h-px bg-gradient-to-r from-transparent via-white/50 to-transparent group-hover:via-white/80 transition-all duration-500"></div>
+  </a>
+</div>
           </div>
           {!userInfo && (
             <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4 max-w-2xl mx-auto mb-8">
@@ -308,51 +362,75 @@ export default function HomePage() {
         </div>
         
         {/* 筛选区域 */}
-        <div className="space-y-6 mb-8">
-
-          {/* 排序按钮 */}
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant={sortBy === 'latest' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setSortBy('latest')}
-            >
-              最新
-            </Button>
-            <Button
-              variant={sortBy === 'popular' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setSortBy('popular')}
-            >
-              最受欢迎
-            </Button>
-            <Button
-              variant={sortBy === 'mostUsed' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setSortBy('mostUsed')}
-            >
-              使用最多
-            </Button>
-          </div>
-
-          {/* 分类筛选 */}
-          <div className="flex flex-wrap gap-2">
-            {categories.map((category) => (
-              <Button
-                key={category}
-                variant={selectedCategory === category ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setSelectedCategory(category)}
+        <div className="space-y-4 sm:space-y-6 mb-8">
+          {/* 响应式筛选布局 */}
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 lg:gap-6">
+            {/* 排序选项 */}
+            <div className="flex items-center gap-1 bg-muted rounded-lg p-1 w-fit">
+              <button
+                onClick={() => setSortBy('latest')}
+                className={`rounded-md px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium transition-all duration-200 ${
+                  sortBy === 'latest' 
+                    ? 'bg-background text-foreground shadow-sm' 
+                    : 'text-muted-foreground hover:text-foreground hover:bg-background/70 hover:scale-105 hover:shadow-sm'
+                }`}
               >
-                {category}
-              </Button>
-            ))}
+                最新
+              </button>
+              <button
+                onClick={() => setSortBy('popular')}
+                className={`rounded-md px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium transition-all duration-200 ${
+                  sortBy === 'popular' 
+                    ? 'bg-background text-foreground shadow-sm' 
+                    : 'text-muted-foreground hover:text-foreground hover:bg-background/70 hover:scale-105 hover:shadow-sm'
+                }`}
+              >
+                最受欢迎
+              </button>
+              <button
+                onClick={() => setSortBy('mostUsed')}
+                className={`rounded-md px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium transition-all duration-200 ${
+                  sortBy === 'mostUsed' 
+                    ? 'bg-background text-foreground shadow-sm' 
+                    : 'text-muted-foreground hover:text-foreground hover:bg-background/70 hover:scale-105 hover:shadow-sm'
+                }`}
+              >
+                使用最多
+              </button>
+            </div>
+
+            {/* 分类筛选 - 响应式滚动 */}
+            <div className="flex gap-2 sm:gap-3 overflow-x-auto pb-2 lg:pb-0 lg:flex-wrap lg:justify-end scrollbar-hide">
+              {!categoriesLoading && categories.map((category) => {
+                const count = category.name === '全部' 
+                  ? workflows.length 
+                  : workflows.filter(w => w.category_name === category.name).length
+                
+                return (
+                  <Button
+                    key={category.id}
+                    variant={selectedCategory === category.name ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setSelectedCategory(category.name)}
+                    className={`rounded-full px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium transition-all duration-200 whitespace-nowrap flex-shrink-0 ${
+                      selectedCategory === category.name 
+                        ? 'bg-primary text-primary-foreground shadow-md hover:bg-primary/90' 
+                        : 'border-border hover:border-border/80 hover:bg-muted'
+                    }`}
+                  >
+                    {category.name} ({count})
+                  </Button>
+                )
+              })}
+            </div>
           </div>
 
           {/* 搜索结果提示 */}
           {searchQuery && (
-            <div className="text-sm text-gray-600">
-              找到 {filteredAndSortedWorkflows.length} 个相关工作流
+            <div className="text-center">
+              <p className="text-muted-foreground text-sm">
+                找到 {filteredAndSortedWorkflows.length} 个相关工作流
+              </p>
             </div>
           )}
         </div>

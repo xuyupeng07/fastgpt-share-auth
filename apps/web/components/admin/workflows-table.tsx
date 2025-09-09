@@ -9,13 +9,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@workspace/ui/components/dialog';
 import { Plus, Edit, Trash2, ExternalLink, Check, X } from 'lucide-react';
 
-// 工作流接口类型定义
+// 工作流接口类型
 interface Workflow {
   id: number;
   name: string;
   description: string;
   no_login_url: string;
   status: 'active' | 'inactive';
+  category_id?: string;
+  category_name?: string;
   created_at: string;
   updated_at: string;
 }
@@ -26,10 +28,24 @@ interface WorkflowFormData {
   description: string;
   no_login_url: string;
   status: 'active' | 'inactive';
+  category_id: string;
+}
+
+// 分类接口类型
+interface Category {
+  _id: string;
+  id: string;
+  name: string;
+  description?: string;
+  sort_order: number;
+  status: 'active' | 'inactive';
+  created_at: string;
+  updated_at: string;
 }
 
 export default function WorkflowsTable() {
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState<'success' | 'error'>('success');
@@ -39,7 +55,8 @@ export default function WorkflowsTable() {
     name: '',
     description: '',
     no_login_url: '',
-    status: 'active'
+    status: 'active',
+    category_id: ''
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -63,6 +80,22 @@ export default function WorkflowsTable() {
     }
   };
 
+  // 加载分类列表
+  const loadCategories = async () => {
+    try {
+      const response = await fetch('/api/categories');
+      const result = await response.json();
+      
+      if (result.success) {
+        setCategories(result.data);
+      } else {
+        console.error('加载分类列表失败:', result.error);
+      }
+    } catch (error) {
+      console.error('加载分类列表失败:', error);
+    }
+  };
+
   // 显示消息
   const showMessage = (msg: string, type: 'success' | 'error') => {
     setMessage(msg);
@@ -76,7 +109,8 @@ export default function WorkflowsTable() {
       name: '',
       description: '',
       no_login_url: '',
-      status: 'active'
+      status: 'active',
+      category_id: ''
     });
     setEditingWorkflow(null);
   };
@@ -94,7 +128,8 @@ export default function WorkflowsTable() {
       name: workflow.name,
       description: workflow.description,
       no_login_url: workflow.no_login_url,
-      status: workflow.status
+      status: workflow.status,
+      category_id: workflow.category_id || ''
     });
     setIsDialogOpen(true);
   };
@@ -190,6 +225,7 @@ export default function WorkflowsTable() {
 
   useEffect(() => {
     loadWorkflows();
+    loadCategories();
   }, []);
 
   if (loading) {
@@ -265,6 +301,24 @@ export default function WorkflowsTable() {
                 />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="category_id" className="text-right">
+                  分类
+                </Label>
+                <select
+                  id="category_id"
+                  value={formData.category_id}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFormData({ ...formData, category_id: e.target.value })}
+                  className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <option value="">请选择分类</option>
+                  {categories.filter(cat => cat.status === 'active').map((category) => (
+                    <option key={category._id} value={category._id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="status" className="text-right">
                   状态
                 </Label>
@@ -311,6 +365,7 @@ export default function WorkflowsTable() {
             <TableRow>
               <TableHead className="w-40">工作流名称</TableHead>
               <TableHead className="w-48">描述</TableHead>
+              <TableHead className="w-32">分类</TableHead>
               <TableHead className="w-48">免登录链接</TableHead>
               <TableHead className="w-20 text-center">状态</TableHead>
               <TableHead className="w-40">创建时间</TableHead>
@@ -320,7 +375,7 @@ export default function WorkflowsTable() {
           <TableBody>
             {workflows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                   暂无工作流数据
                 </TableCell>
               </TableRow>
@@ -330,6 +385,12 @@ export default function WorkflowsTable() {
                   <TableCell className="font-medium text-gray-900">{workflow.name}</TableCell>
                   <TableCell className="max-w-xs truncate text-gray-600" title={workflow.description}>
                     {workflow.description}
+                  </TableCell>
+                  <TableCell className="text-gray-600">
+                    {workflow.category_name || 
+                      categories.find(cat => cat._id === workflow.category_id)?.name || 
+                      '未分类'
+                    }
                   </TableCell>
                   <TableCell className="max-w-xs truncate">
                     <a 

@@ -3,8 +3,9 @@ import UserModel from './models/User';
 import ConsumptionRecordModel from './models/ConsumptionRecord';
 import RechargeRecordModel from './models/RechargeRecord';
 import WorkflowModel from './models/Workflow';
+import WorkflowCategoryModel from './models/WorkflowCategory';
 import bcrypt from 'bcryptjs';
-import type { IUser, IConsumptionRecord, IRechargeRecord, IWorkflow } from './models';
+import type { IUser, IConsumptionRecord, IRechargeRecord, IWorkflow, IWorkflowCategory } from './models';
 
 // 确保数据库连接
 async function ensureConnection() {
@@ -289,12 +290,14 @@ export async function getAllWorkflows() {
   try {
     await ensureConnection();
     const workflows = await WorkflowModel.find({})
+      .populate('category_id', 'name description')
       .sort({ created_at: -1 })
       .lean();
     
     return workflows.map(workflow => ({
       ...workflow,
-      id: workflow._id
+      id: workflow._id.toString(), // 确保ID是字符串格式
+      category_name: workflow.category_id ? (workflow.category_id as any).name : '未分类' // 添加category_name字段供前端使用
     }));
   } catch (error) {
     console.error('获取工作流列表失败:', error);
@@ -312,7 +315,7 @@ export async function getWorkflowById(id: string | number) {
     
     return {
       ...workflow,
-      id: workflow._id
+      id: workflow._id.toString() // 确保ID是字符串格式
     };
   } catch (error) {
     console.error('获取工作流详情失败:', error);
@@ -325,7 +328,8 @@ export async function createWorkflow(
   name: string,
   description: string,
   noLoginUrl: string,
-  status: 'active' | 'inactive' = 'active'
+  status: 'active' | 'inactive' = 'active',
+  categoryId?: string
 ) {
   try {
     await ensureConnection();
@@ -333,7 +337,8 @@ export async function createWorkflow(
       name,
       description,
       no_login_url: noLoginUrl,
-      status
+      status,
+      category_id: categoryId
     });
     
     const result = await workflow.save();
@@ -350,7 +355,8 @@ export async function updateWorkflow(
   name: string,
   description: string,
   noLoginUrl: string,
-  status: 'active' | 'inactive'
+  status: 'active' | 'inactive',
+  categoryId?: string
 ) {
   try {
     await ensureConnection();
@@ -361,6 +367,7 @@ export async function updateWorkflow(
         description,
         no_login_url: noLoginUrl,
         status,
+        category_id: categoryId,
         updated_at: new Date()
       },
       { new: true }
@@ -396,6 +403,123 @@ export async function updateWorkflowStatus(id: string | number, status: 'active'
     return result;
   } catch (error) {
     console.error('更新工作流状态失败:', error);
+    throw error;
+  }
+}
+
+// 工作流分类相关操作
+
+// 获取所有工作流分类
+export async function getAllWorkflowCategories() {
+  try {
+    await ensureConnection();
+    const categories = await WorkflowCategoryModel.find({ status: 'active' })
+      .sort({ sort_order: 1, created_at: 1 })
+      .lean();
+    
+    return categories.map(category => ({
+      ...category,
+      id: category._id.toString()
+    }));
+  } catch (error) {
+    console.error('获取工作流分类列表失败:', error);
+    return [];
+  }
+}
+
+// 根据ID获取工作流分类
+export async function getWorkflowCategoryById(id: string | number) {
+  try {
+    await ensureConnection();
+    const category = await WorkflowCategoryModel.findById(id).lean();
+    
+    if (!category) return null;
+    
+    return {
+      ...category,
+      id: category._id.toString()
+    };
+  } catch (error) {
+    console.error('获取工作流分类详情失败:', error);
+    return null;
+  }
+}
+
+// 创建工作流分类
+export async function createWorkflowCategory(categoryData: {
+  name: string;
+  description?: string;
+  sort_order?: number;
+  status?: 'active' | 'inactive';
+}) {
+  try {
+    await ensureConnection();
+    const category = new WorkflowCategoryModel(categoryData);
+    const result = await category.save();
+    return {
+      ...result.toObject(),
+      id: result._id.toString()
+    };
+  } catch (error) {
+    console.error('创建工作流分类失败:', error);
+    throw error;
+  }
+}
+
+// 更新工作流分类
+export async function updateWorkflowCategory(
+  id: string | number,
+  updateData: {
+    name?: string;
+    description?: string;
+    sort_order?: number;
+    status?: 'active' | 'inactive';
+  }
+) {
+  try {
+    await ensureConnection();
+    const result = await WorkflowCategoryModel.findByIdAndUpdate(
+      id,
+      { ...updateData, updated_at: new Date() },
+      { new: true }
+    );
+    
+    if (!result) return null;
+    
+    return {
+      ...result.toObject(),
+      id: result._id.toString()
+    };
+  } catch (error) {
+    console.error('更新工作流分类失败:', error);
+    throw error;
+  }
+}
+
+// 删除工作流分类
+export async function deleteWorkflowCategory(id: string | number) {
+  try {
+    await ensureConnection();
+    const result = await WorkflowCategoryModel.findByIdAndDelete(id);
+    return result;
+  } catch (error) {
+    console.error('删除工作流分类失败:', error);
+    throw error;
+  }
+}
+
+// 更新工作流分类状态
+export async function updateWorkflowCategoryStatus(id: string | number, status: 'active' | 'inactive') {
+  try {
+    await ensureConnection();
+    const result = await WorkflowCategoryModel.findByIdAndUpdate(
+      id,
+      { status, updated_at: new Date() },
+      { new: true }
+    );
+    return result;
+  } catch (error) {
+    console.error('更新工作流分类状态失败:', error);
     throw error;
   }
 }

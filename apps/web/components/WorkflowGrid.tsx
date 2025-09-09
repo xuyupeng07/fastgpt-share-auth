@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { Button } from './ui/button'
 import { Badge } from '@workspace/ui/components/badge'
 import { Input } from './ui/input'
@@ -16,21 +16,45 @@ interface WorkflowGridProps {
 
 type SortOption = 'latest' | 'popular' | 'mostUsed'
 
-const categories = [
-  '全部',
-  '客服助手',
-  '办公助手', 
-  '编程助手',
-  '学习助手',
-  '生活助手',
-  '创作助手',
-  '其他'
-]
+interface Category {
+  id: string
+  name: string
+  sort_order: number
+}
 
 export function WorkflowGrid({ workflows, onTryWorkflow, onLike, authToken }: WorkflowGridProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('全部')
   const [sortBy, setSortBy] = useState<SortOption>('latest')
+  const [categories, setCategories] = useState<Category[]>([{ id: 'all', name: '全部', sort_order: 0 }])
+  const [categoriesLoading, setCategoriesLoading] = useState(true)
+
+  // 获取分类数据
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        setCategoriesLoading(true)
+        const response = await fetch('/api/categories')
+        const result = await response.json()
+        
+        if (result.success) {
+          const allCategory = { id: 'all', name: '全部', sort_order: 0 }
+          const apiCategories = result.data.map((cat: any) => ({
+            id: cat.id,
+            name: cat.name,
+            sort_order: cat.sort_order
+          }))
+          setCategories([allCategory, ...apiCategories])
+        }
+      } catch (error) {
+        console.error('获取分类失败:', error)
+      } finally {
+        setCategoriesLoading(false)
+      }
+    }
+    
+    fetchCategories()
+  }, [])
 
   // 过滤和排序工作流
   const filteredAndSortedWorkflows = useMemo(() => {
@@ -123,25 +147,25 @@ export function WorkflowGrid({ workflows, onTryWorkflow, onLike, authToken }: Wo
 
           {/* 分类筛选 - 响应式滚动 */}
           <div className="flex gap-2 sm:gap-3 overflow-x-auto pb-2 lg:pb-0 lg:flex-wrap lg:justify-end scrollbar-hide">
-            {categories.map((category) => {
-              const categoryCount = category === '全部' 
-                ? filteredAndSortedWorkflows.length 
-                : workflows.filter(w => w.category === category).length
+            {!categoriesLoading && categories.map((category) => {
+              const categoryCount = category.name === '全部' 
+                ? workflows.length 
+                : workflows.filter(w => w.category === category.name).length
               
               return (
                 <Button
-                  key={category}
-                  variant={selectedCategory === category ? 'default' : 'outline'}
+                  key={category.id}
+                  variant={selectedCategory === category.name ? 'default' : 'outline'}
                   size="sm"
-                  onClick={() => setSelectedCategory(category)}
+                  onClick={() => setSelectedCategory(category.name)}
                   className={`rounded-full px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium transition-all duration-200 whitespace-nowrap flex-shrink-0 ${
-                    selectedCategory === category 
+                    selectedCategory === category.name 
                       ? 'bg-gray-900 text-white shadow-md hover:bg-gray-800' 
                       : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                   }`}
                 >
-                  {category}
-                  {selectedCategory === category && (
+                  {category.name}
+                  {selectedCategory === category.name && (
                     <Badge variant="secondary" className="ml-1 sm:ml-2 bg-white/20 text-white border-0 text-xs">
                       {categoryCount}
                     </Badge>

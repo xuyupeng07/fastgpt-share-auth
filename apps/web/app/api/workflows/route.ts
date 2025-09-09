@@ -14,6 +14,8 @@ interface Workflow {
   description: string;
   no_login_url: string;
   status: 'active' | 'inactive';
+  category_id?: string;
+  category_name?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -39,7 +41,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, description, no_login_url, status = 'active' } = body;
+    const { name, description, no_login_url, status = 'active', category_id } = body;
 
     // 验证必填字段
     if (!name || !description || !no_login_url) {
@@ -67,7 +69,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = await createWorkflow(name, description, no_login_url, status);
+    const result = await createWorkflow(name, description, no_login_url, status, category_id);
     
     return NextResponse.json({
       success: true,
@@ -87,7 +89,7 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const { id, name, description, no_login_url, status } = body;
+    const { id, name, description, no_login_url, status, category_id } = body;
 
     // 验证必填字段
     if (!id || !name || !description || !no_login_url || !status) {
@@ -124,7 +126,7 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const result = await updateWorkflow(id, name, description, no_login_url, status);
+    const result = await updateWorkflow(id, name, description, no_login_url, status, category_id);
     
     return NextResponse.json({
       success: true,

@@ -54,7 +54,7 @@ const Tooltip = ({
       {isVisible && (
         <div 
           className={cn(
-            "absolute z-50 px-3 py-1.5 text-xs bg-gray-900 text-white rounded-md shadow-lg pointer-events-none whitespace-nowrap",
+            "absolute z-[99999999999] px-3 py-1.5 text-xs bg-gray-900 text-white rounded-md shadow-lg pointer-events-none whitespace-nowrap",
             getPositionClasses(),
             className
           )}

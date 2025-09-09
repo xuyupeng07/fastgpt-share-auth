@@ -4,14 +4,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui/componen
 import { UsersTable } from "@/components/admin/users-table"
 import { ConsumptionTable } from "@/components/admin/consumption-table"
 import { RechargeTable } from "@/components/admin/recharge-table"
-import { Users, Activity, CreditCard, Workflow } from "lucide-react"
+import { Users, Activity, CreditCard, Workflow, FolderTree } from "lucide-react"
 import WorkflowsTable from "@/components/admin/workflows-table"
+import { CategoriesTable } from "@/components/admin/categories-table"
 
 
 export function AdminTabs() {
   return (
     <Tabs defaultValue="users" className="w-full">
-      <TabsList className="grid w-full grid-cols-4">
+      <TabsList className="grid w-full grid-cols-5">
         <TabsTrigger value="users" className="flex items-center space-x-2">
           <Users className="h-4 w-4" />
           <span>用户管理</span>
@@ -27,6 +28,10 @@ export function AdminTabs() {
         <TabsTrigger value="workflows" className="flex items-center space-x-2">
           <Workflow className="h-4 w-4" />
           <span>工作流管理</span>
+        </TabsTrigger>
+        <TabsTrigger value="categories" className="flex items-center space-x-2">
+          <FolderTree className="h-4 w-4" />
+          <span>分类管理</span>
         </TabsTrigger>
       </TabsList>
       
@@ -45,6 +50,10 @@ export function AdminTabs() {
 
       <TabsContent value="workflows" className="mt-6">
         <WorkflowsTable />
+      </TabsContent>
+      
+      <TabsContent value="categories" className="mt-6">
+        <CategoriesTable />
       </TabsContent>
     </Tabs>
   )

@@ -12,7 +12,7 @@ interface WorkflowCardProps {
   workflow: Workflow
   index?: number
   onTryWorkflow?: (workflow: Workflow) => void
-  onLike?: (workflowId: string) => void
+  onLike?: (workflowId: string, newLikeCount: number) => void
   authToken?: string | null
 }
 
@@ -23,7 +23,19 @@ export function WorkflowCard({ workflow, index = 0, onTryWorkflow, onLike, authT
 
 
 
-  const handleTryWorkflow = () => {
+  const handleTryWorkflow = async () => {
+    // 增加使用量
+    try {
+      await fetch(`/api/workflows/${workflow.id}/usage`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+    } catch (error) {
+      console.error('Error updating usage count:', error)
+    }
+    
     // 使用与原项目相同的跳转逻辑
     if (authToken && workflow.demo_url) {
       const fastgptUrl = `${workflow.demo_url}&authToken=${authToken}`
@@ -35,11 +47,31 @@ export function WorkflowCard({ workflow, index = 0, onTryWorkflow, onLike, authT
     onTryWorkflow?.(workflow)
   }
 
-  const handleLike = () => {
-    if (!isLiked) {
-      setIsLiked(true)
-      setLikeCount(prev => prev + 1)
-      onLike?.(workflow.id)
+  const handleLike = async () => {
+    if (isLiked) return
+    
+    try {
+      const response = await fetch(`/api/workflows/${workflow.id}/like`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+      
+      if (response.ok) {
+        const result = await response.json()
+        if (result.success && result.data) {
+          setIsLiked(true)
+          setLikeCount(result.data.likeCount)
+          onLike?.(workflow.id, result.data.likeCount)
+        } else {
+          console.error('API response error:', result.message)
+        }
+      } else {
+        console.error('Failed to like workflow')
+      }
+    } catch (error) {
+      console.error('Error liking workflow:', error)
     }
   }
 
@@ -57,9 +89,9 @@ export function WorkflowCard({ workflow, index = 0, onTryWorkflow, onLike, authT
         </div>
       )}
       
-      <Card className="workflow-card h-full flex flex-col hover:shadow-md transition-all duration-300 border border-gray-100/50 bg-white rounded-xl overflow-hidden p-1 sm:p-1.5">
+      <Card className="workflow-card h-full flex flex-col hover:shadow-md transition-all duration-300 border border-border bg-card rounded-xl overflow-visible p-1 sm:p-1.5">
         {/* 主要内容区域 */}
-        <div className="flex-1 px-3 sm:px-4 lg:px-5 pt-2 sm:pt-3 pb-1 sm:pb-1.5 overflow-hidden">
+        <div className="flex-1 px-3 sm:px-4 lg:px-5 pt-2 sm:pt-3 pb-1 sm:pb-1.5 overflow-visible">
           {/* 顶部区域：logo和基本信息 */}
           <div className="flex gap-2 sm:gap-2.5 -mb-1">
             {/* 左侧logo */}
@@ -88,7 +120,7 @@ export function WorkflowCard({ workflow, index = 0, onTryWorkflow, onLike, authT
               {/* 标题 */}
               <div className="mb-1">
                 <div className="flex items-center gap-1.5">
-                  <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-gray-900 line-clamp-1 flex-1">
+                  <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-card-foreground line-clamp-1 flex-1">
                     {workflow.name}
                   </h3>
                 </div>
@@ -96,7 +128,7 @@ export function WorkflowCard({ workflow, index = 0, onTryWorkflow, onLike, authT
               
               {/* 作者信息 */}
               <div className="flex items-center gap-1 sm:gap-1.5 mb-0.5 mt-0.5 sm:mt-1">
-                <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center border border-gray-100 shadow-sm overflow-hidden">
+                <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center border border-border shadow-sm overflow-hidden">
                   <Image
                     src={(workflow.author?.name === 'FastGPT Team' || workflow.author?.name === 'FastGPT团队' || !workflow.author?.name) ? "/fastgpt.svg" : "/community.svg"}
                     alt={(workflow.author?.name === 'FastGPT Team' || workflow.author?.name === 'FastGPT团队' || !workflow.author?.name) ? "FastGPT" : "社区贡献者"}
@@ -109,7 +141,7 @@ export function WorkflowCard({ workflow, index = 0, onTryWorkflow, onLike, authT
                     unoptimized
                   />
                 </div>
-                <span className="text-xs sm:text-sm font-medium text-gray-700">
+                <span className="text-xs sm:text-sm font-medium text-muted-foreground">
                   {/* 显示实际作者名称 */}
                   {workflow.author?.name || 'FastGPT团队'}
                 </span>
@@ -127,16 +159,16 @@ export function WorkflowCard({ workflow, index = 0, onTryWorkflow, onLike, authT
           
           {/* 描述 */}
            <Tooltip content={workflow.description}>
-             <p className="text-xs sm:text-sm text-gray-500 line-clamp-4 sm:line-clamp-3 leading-relaxed mt-1 sm:mt-2 lg:mt-2.5 cursor-pointer">
+             <p className="text-xs sm:text-sm text-muted-foreground line-clamp-4 sm:line-clamp-3 leading-relaxed mt-1 sm:mt-2 lg:mt-2.5 cursor-pointer">
                {workflow.description}
              </p>
            </Tooltip>
         </div>
 
         {/* 底部统计和操作 */}
-        <div className="flex items-center justify-between px-3 sm:px-4 lg:px-5 py-1.5 sm:py-2 border-t border-gray-100 flex-shrink-0 bg-gray-50/30">
+        <div className="flex items-center justify-between px-3 sm:px-4 lg:px-5 py-1.5 sm:py-2 border-t border-border flex-shrink-0 bg-muted/30">
           {/* 统计信息 */}
-          <div className="flex items-center gap-1.5 sm:gap-2 text-xs text-gray-500">
+          <div className="flex items-center gap-1.5 sm:gap-2 text-xs text-muted-foreground">
             <span className="flex items-center gap-0.5 sm:gap-1">
               <Users className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
               <span className="font-medium">{(workflow.usageCount || 0) > 999 ? `${Math.floor((workflow.usageCount || 0)/1000)}k` : (workflow.usageCount || 0)}</span>
@@ -145,7 +177,7 @@ export function WorkflowCard({ workflow, index = 0, onTryWorkflow, onLike, authT
               <button 
                 onClick={handleLike}
                 className={`flex items-center gap-1 transition-colors hover:text-red-500 ${
-                  isLiked ? 'text-red-500' : 'text-gray-500'
+                  isLiked ? 'text-red-500' : 'text-muted-foreground'
                 } cursor-pointer`}
               >
                 <Heart 
@@ -173,8 +205,8 @@ export function WorkflowCard({ workflow, index = 0, onTryWorkflow, onLike, authT
                  onClick={handleTryWorkflow}
                  className={`border-0 rounded-lg px-1.5 sm:px-2 lg:px-2.5 py-0.5 sm:py-1 text-xs font-medium transition-all duration-200 h-5 sm:h-6 ${
                    (!authToken && !workflow.demo_url)
-                     ? 'bg-gray-400 cursor-not-allowed text-gray-200'
-                     : 'bg-gray-900 hover:bg-gray-800 text-white'
+                     ? 'bg-muted cursor-not-allowed text-muted-foreground'
+                     : 'bg-primary hover:bg-primary/90 text-primary-foreground'
                  }`}
                  disabled={!authToken && !workflow.demo_url}
                >

@@ -16,9 +16,10 @@ function transformWorkflowToCard(workflow: any) {
       avatar: '/fastgpt.svg',
       isVerified: true
     },
-    category: '智能助手', // 默认分类
-    likeCount: Math.floor(Math.random() * 200) + 50, // 随机点赞数
-    usageCount: Math.floor(Math.random() * 2000) + 100 // 随机使用数
+    category: workflow.category_name || '其他', // 使用工作流的实际分类
+    category_name: workflow.category_name || '其他', // 添加category_name字段
+    likeCount: workflow.likeCount || 0, // 使用数据库中的真实点赞数
+    usageCount: workflow.usageCount || 0 // 使用数据库中的真实使用数
   };
 }
 

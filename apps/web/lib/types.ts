@@ -12,6 +12,7 @@ export interface Workflow {
     isVerified?: boolean
   }
   category?: string
+  category_name?: string
   likeCount?: number
   usageCount?: number
 }
