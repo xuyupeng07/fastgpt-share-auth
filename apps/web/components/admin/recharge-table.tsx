@@ -323,17 +323,17 @@ export function RechargeTable() {
                       {record.username || '-'}
                     </TableCell>
                     <TableCell className="text-center">
-                      <span className="font-semibold text-green-600">
+                      <span className="font-semibold text-green-600 dark:text-green-400">
                         +¥{record.amount.toFixed(2)}
                       </span>
                     </TableCell>
                     <TableCell className="text-center">
-                      <span className="font-mono text-gray-600">
+                      <span className="font-mono text-muted-foreground">
                         ¥{record.balance_before.toFixed(2)}
                       </span>
                     </TableCell>
                     <TableCell className="text-center">
-                      <span className="font-semibold text-blue-600">
+                      <span className="font-semibold text-blue-600 dark:text-blue-400">
                         ¥{record.balance_after.toFixed(2)}
                       </span>
                     </TableCell>
@@ -342,10 +342,10 @@ export function RechargeTable() {
                         {getStatusText(record.status)}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-sm text-gray-500">
+                    <TableCell className="text-sm text-muted-foreground">
                       {formatDate(record.created_at)}
                     </TableCell>
-                    <TableCell className="text-sm text-gray-600 max-w-32 truncate" title={record.remark || '-'}>
+                    <TableCell className="text-sm text-muted-foreground max-w-32 truncate" title={record.remark || '-'}>
                       {record.remark || '-'}
                     </TableCell>
                   </TableRow>

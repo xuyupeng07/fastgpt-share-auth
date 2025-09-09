@@ -3,6 +3,7 @@ export interface Workflow {
   name: string
   description: string
   logo?: string
+  avatar?: string // base64格式的工作流头像
   isVip?: boolean
   config?: any
   demo_url?: string

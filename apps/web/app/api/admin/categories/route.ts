@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, description, sort_order, status } = body;
+    const { name, sort_order, status } = body;
 
     // 验证必填字段
     if (!name || name.trim() === '') {
@@ -112,7 +112,6 @@ export async function POST(request: NextRequest) {
 
     const categoryData = {
       name: name.trim(),
-      description: description?.trim() || '',
       sort_order: sort_order || 0,
       status: status || 'active'
     };
@@ -150,7 +149,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { id, name, description, sort_order, status } = body;
+    const { id, name, sort_order, status } = body;
 
     // 验证必填字段
     if (!id) {
@@ -169,7 +168,6 @@ export async function PUT(request: NextRequest) {
 
     const updateData = {
       name: name.trim(),
-      description: description?.trim() || '',
       sort_order: sort_order || 0,
       status: status || 'active'
     };

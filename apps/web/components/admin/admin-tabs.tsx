@@ -11,8 +11,16 @@ import { CategoriesTable } from "@/components/admin/categories-table"
 
 export function AdminTabs() {
   return (
-    <Tabs defaultValue="users" className="w-full">
+    <Tabs defaultValue="workflows" className="w-full">
       <TabsList className="grid w-full grid-cols-5">
+        <TabsTrigger value="workflows" className="flex items-center space-x-2">
+          <Workflow className="h-4 w-4" />
+          <span>工作流管理</span>
+        </TabsTrigger>
+        <TabsTrigger value="categories" className="flex items-center space-x-2">
+          <FolderTree className="h-4 w-4" />
+          <span>分类管理</span>
+        </TabsTrigger>
         <TabsTrigger value="users" className="flex items-center space-x-2">
           <Users className="h-4 w-4" />
           <span>用户管理</span>
@@ -25,15 +33,15 @@ export function AdminTabs() {
           <CreditCard className="h-4 w-4" />
           <span>充值记录</span>
         </TabsTrigger>
-        <TabsTrigger value="workflows" className="flex items-center space-x-2">
-          <Workflow className="h-4 w-4" />
-          <span>工作流管理</span>
-        </TabsTrigger>
-        <TabsTrigger value="categories" className="flex items-center space-x-2">
-          <FolderTree className="h-4 w-4" />
-          <span>分类管理</span>
-        </TabsTrigger>
       </TabsList>
+      
+      <TabsContent value="workflows" className="mt-6">
+        <WorkflowsTable />
+      </TabsContent>
+      
+      <TabsContent value="categories" className="mt-6">
+        <CategoriesTable />
+      </TabsContent>
       
       <TabsContent value="users" className="mt-6">
         <UsersTable />
@@ -45,15 +53,6 @@ export function AdminTabs() {
       
       <TabsContent value="recharge" className="mt-6">
         <RechargeTable />
-      </TabsContent>
-      
-
-      <TabsContent value="workflows" className="mt-6">
-        <WorkflowsTable />
-      </TabsContent>
-      
-      <TabsContent value="categories" className="mt-6">
-        <CategoriesTable />
       </TabsContent>
     </Tabs>
   )

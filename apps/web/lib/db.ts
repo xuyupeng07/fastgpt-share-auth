@@ -329,7 +329,8 @@ export async function createWorkflow(
   description: string,
   noLoginUrl: string,
   status: 'active' | 'inactive' = 'active',
-  categoryId?: string
+  categoryId?: string,
+  avatar?: string
 ) {
   try {
     await ensureConnection();
@@ -338,10 +339,12 @@ export async function createWorkflow(
       description,
       no_login_url: noLoginUrl,
       status,
-      category_id: categoryId
+      category_id: categoryId,
+      avatar
     });
     
     const result = await workflow.save();
+    
     return result;
   } catch (error) {
     console.error('创建工作流失败:', error);
@@ -356,20 +359,28 @@ export async function updateWorkflow(
   description: string,
   noLoginUrl: string,
   status: 'active' | 'inactive',
-  categoryId?: string
+  categoryId?: string,
+  avatar?: string
 ) {
   try {
     await ensureConnection();
+    const updateData: any = {
+      name,
+      description,
+      no_login_url: noLoginUrl,
+      status,
+      category_id: categoryId,
+      updated_at: new Date()
+    };
+    
+    // 只有当avatar不为undefined时才更新avatar字段
+    if (avatar !== undefined) {
+      updateData.avatar = avatar;
+    }
+    
     const result = await WorkflowModel.findByIdAndUpdate(
       id,
-      {
-        name,
-        description,
-        no_login_url: noLoginUrl,
-        status,
-        category_id: categoryId,
-        updated_at: new Date()
-      },
+      updateData,
       { new: true }
     );
     return result;
@@ -448,7 +459,6 @@ export async function getWorkflowCategoryById(id: string | number) {
 // 创建工作流分类
 export async function createWorkflowCategory(categoryData: {
   name: string;
-  description?: string;
   sort_order?: number;
   status?: 'active' | 'inactive';
 }) {
@@ -471,7 +481,6 @@ export async function updateWorkflowCategory(
   id: string | number,
   updateData: {
     name?: string;
-    description?: string;
     sort_order?: number;
     status?: 'active' | 'inactive';
   }
@@ -569,6 +578,44 @@ export async function updateUserAdmin(userId: string | number, isAdmin: boolean)
   } catch (error) {
     console.error('更新用户管理员权限失败:', error);
     return false;
+  }
+}
+
+// 创建用户
+export async function createUser(userData: {
+  username: string;
+  email: string;
+  password: string;
+  balance?: number;
+  is_admin?: boolean;
+}) {
+  try {
+    await ensureConnection();
+    
+    const newUser = new UserModel({
+      username: userData.username,
+      email: userData.email,
+      password: userData.password,
+      balance: userData.balance || 0,
+      is_admin: userData.is_admin || false,
+      status: 'active'
+    });
+    
+    const savedUser = await newUser.save();
+    
+    // 返回用户信息（不包含密码）
+    return {
+      id: savedUser._id.toString(),
+      username: savedUser.username,
+      email: savedUser.email,
+      balance: savedUser.balance,
+      status: savedUser.status,
+      is_admin: savedUser.is_admin,
+      created_at: savedUser.created_at
+    };
+  } catch (error) {
+    console.error('创建用户失败:', error);
+    throw error;
   }
 }
 

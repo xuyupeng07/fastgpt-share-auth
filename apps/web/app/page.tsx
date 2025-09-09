@@ -8,6 +8,8 @@ import { ExternalLink, LogIn } from "lucide-react"
 import { Header } from "@/components/Header"
 import { WorkflowGrid } from "@/components/WorkflowGrid"
 import { WorkflowCard } from "@/components/WorkflowCard"
+import { PartnersCompact } from "@/components/Partners"
+import { LoginDialog } from "@/components/auth/login-dialog"
 import { Workflow } from "@/lib/types"
 
 interface LinkConfig {
@@ -33,8 +35,9 @@ export default function HomePage() {
   const [categories, setCategories] = useState<Category[]>([{ id: 'all', name: '全部', sort_order: 0 }])
   const [categoriesLoading, setCategoriesLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
-  const [sortBy, setSortBy] = useState<SortOption>('latest')
+  const [sortBy, setSortBy] = useState<SortOption>('mostUsed')
   const [selectedCategory, setSelectedCategory] = useState('全部')
+  const [showLoginDialog, setShowLoginDialog] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
 
   // 获取工作流链接配置
@@ -277,22 +280,38 @@ export default function HomePage() {
   }
 
   const handleLogin = () => {
-    window.location.href = '/login'
+    setShowLoginDialog(true)
+  }
+
+  // 登录成功后的回调函数
+  const handleLoginSuccess = async () => {
+    const token = localStorage.getItem("authToken")
+    const user = localStorage.getItem("userInfo")
+    
+    if (token && user) {
+      setAuthToken(token)
+      setUserInfo(JSON.parse(user))
+      
+      // 获取最新用户信息
+      await refreshUserInfo(token)
+    }
+    
+    setShowLoginDialog(false)
   }
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50/80 via-slate-50/60 to-indigo-50/40 dark:from-slate-900 dark:via-blue-950/30 dark:to-indigo-950/20">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p>加载中...</p>
+          <p className="text-foreground/80">加载中...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50/80 via-slate-50/60 to-indigo-50/40 dark:from-slate-900 dark:via-blue-950/30 dark:to-indigo-950/20">
       {/* Header组件 */}
       <Header 
         searchQuery={searchQuery}
@@ -368,14 +387,14 @@ export default function HomePage() {
             {/* 排序选项 */}
             <div className="flex items-center gap-1 bg-muted rounded-lg p-1 w-fit">
               <button
-                onClick={() => setSortBy('latest')}
+                onClick={() => setSortBy('mostUsed')}
                 className={`rounded-md px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium transition-all duration-200 ${
-                  sortBy === 'latest' 
+                  sortBy === 'mostUsed' 
                     ? 'bg-background text-foreground shadow-sm' 
                     : 'text-muted-foreground hover:text-foreground hover:bg-background/70 hover:scale-105 hover:shadow-sm'
                 }`}
               >
-                最新
+                使用最多
               </button>
               <button
                 onClick={() => setSortBy('popular')}
@@ -388,14 +407,14 @@ export default function HomePage() {
                 最受欢迎
               </button>
               <button
-                onClick={() => setSortBy('mostUsed')}
+                onClick={() => setSortBy('latest')}
                 className={`rounded-md px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium transition-all duration-200 ${
-                  sortBy === 'mostUsed' 
+                  sortBy === 'latest' 
                     ? 'bg-background text-foreground shadow-sm' 
                     : 'text-muted-foreground hover:text-foreground hover:bg-background/70 hover:scale-105 hover:shadow-sm'
                 }`}
               >
-                使用最多
+                最新
               </button>
             </div>
 
@@ -437,7 +456,7 @@ export default function HomePage() {
         
         {/* 工作流网格 */}
         {filteredAndSortedWorkflows.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
             {filteredAndSortedWorkflows.map((workflow) => (
               <WorkflowCard
                 key={workflow.id}
@@ -460,6 +479,16 @@ export default function HomePage() {
           </div>
         )}
       </div>
+      
+      {/* 合作伙伴轮播图 */}
+      <PartnersCompact />
+      
+      {/* 登录对话框 */}
+       <LoginDialog 
+         open={showLoginDialog} 
+         onOpenChange={setShowLoginDialog}
+         onSuccess={handleLoginSuccess}
+       />
     </div>
   )
 }

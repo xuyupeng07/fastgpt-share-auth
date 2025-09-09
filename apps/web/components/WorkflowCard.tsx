@@ -89,9 +89,9 @@ export function WorkflowCard({ workflow, index = 0, onTryWorkflow, onLike, authT
         </div>
       )}
       
-      <Card className="workflow-card h-full flex flex-col hover:shadow-md transition-all duration-300 border border-border bg-card rounded-xl overflow-visible p-1 sm:p-1.5">
+      <Card className="workflow-card h-full flex flex-col hover:shadow-xl hover:shadow-black/10 hover:scale-[1.02] transition-all duration-300 ease-out border border-border bg-card rounded-xl overflow-visible p-1 sm:p-1.5 hover:-translate-y-1 relative">
         {/* 主要内容区域 */}
-        <div className="flex-1 px-3 sm:px-4 lg:px-5 pt-2 sm:pt-3 pb-1 sm:pb-1.5 overflow-visible">
+        <div className="flex-1 px-3 sm:px-4 lg:px-5 pt-2 sm:pt-3 pb-12 sm:pb-14 overflow-visible">
           {/* 顶部区域：logo和基本信息 */}
           <div className="flex gap-2 sm:gap-2.5 -mb-1">
             {/* 左侧logo */}
@@ -100,7 +100,7 @@ export function WorkflowCard({ workflow, index = 0, onTryWorkflow, onLike, authT
               background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)'
             }}>
               <Image
-                src={workflow.logo || '/fastgpt.svg'}
+                src={workflow.avatar || workflow.logo || '/fastgpt.svg'}
                 alt={workflow.name}
                 width={56}
                 height={56}
@@ -158,15 +158,18 @@ export function WorkflowCard({ workflow, index = 0, onTryWorkflow, onLike, authT
           </div>
           
           {/* 描述 */}
-           <Tooltip content={workflow.description}>
-             <p className="text-xs sm:text-sm text-muted-foreground line-clamp-4 sm:line-clamp-3 leading-relaxed mt-1 sm:mt-2 lg:mt-2.5 cursor-pointer">
+           <Tooltip 
+             content={workflow.description}
+             side="top"
+           >
+             <p className="text-xs sm:text-sm text-muted-foreground line-clamp-4 leading-relaxed mt-1 sm:mt-2 lg:mt-2.5 cursor-pointer hover:text-foreground transition-colors">
                {workflow.description}
              </p>
            </Tooltip>
         </div>
 
-        {/* 底部统计和操作 */}
-        <div className="flex items-center justify-between px-3 sm:px-4 lg:px-5 py-1.5 sm:py-2 border-t border-border flex-shrink-0 bg-muted/30">
+        {/* 底部统计和操作 - 绝对定位 */}
+        <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-3 sm:px-4 lg:px-5 py-1.5 sm:py-2 border-t border-border bg-muted/30 rounded-b-xl">
           {/* 统计信息 */}
           <div className="flex items-center gap-1.5 sm:gap-2 text-xs text-muted-foreground">
             <span className="flex items-center gap-0.5 sm:gap-1">
@@ -192,13 +195,16 @@ export function WorkflowCard({ workflow, index = 0, onTryWorkflow, onLike, authT
 
           {/* 操作按钮 */}
           <div className="flex gap-1 sm:gap-1.5">
-            <Tooltip content={
-               authToken && workflow.demo_url
-                 ? "快速体验" 
-                 : !authToken
-                   ? "跳转至FastGPT登录页，扫码登录后系统将自动创建该工作流"
-                   : "联系FastGPT商务团队获取更多工作流模板"
-             }>
+            <Tooltip 
+              content={
+                authToken && workflow.demo_url
+                  ? "快速体验" 
+                  : !authToken
+                    ? "跳转至FastGPT登录页，扫码登录后系统将自动创建该工作流"
+                    : "联系FastGPT商务团队获取更多工作流模板"
+              }
+              side="top"
+            >
                <Button 
                  type="button"
                  size="sm"

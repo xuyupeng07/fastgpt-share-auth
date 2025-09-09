@@ -16,6 +16,7 @@ interface Workflow {
   status: 'active' | 'inactive';
   category_id?: string;
   category_name?: string;
+  avatar?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -41,7 +42,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, description, no_login_url, status = 'active', category_id } = body;
+    const { name, description, no_login_url, status = 'active', category_id, avatar } = body;
 
     // 验证必填字段
     if (!name || !description || !no_login_url) {
@@ -69,7 +70,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = await createWorkflow(name, description, no_login_url, status, category_id);
+    const result = await createWorkflow(name, description, no_login_url, status, category_id || undefined, avatar);
     
     return NextResponse.json({
       success: true,
@@ -89,7 +90,7 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const { id, name, description, no_login_url, status, category_id } = body;
+    const { id, name, description, no_login_url, status, category_id, avatar } = body;
 
     // 验证必填字段
     if (!id || !name || !description || !no_login_url || !status) {
@@ -126,7 +127,7 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const result = await updateWorkflow(id, name, description, no_login_url, status, category_id);
+    const result = await updateWorkflow(id, name, description, no_login_url, status, category_id || undefined, avatar);
     
     return NextResponse.json({
       success: true,
@@ -156,7 +157,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // 验证工作流是否存在
-    const existingWorkflow = await getWorkflowById(parseInt(id));
+    const existingWorkflow = await getWorkflowById(id);
     if (!existingWorkflow) {
       return NextResponse.json(
         { success: false, message: '工作流不存在' },
@@ -164,7 +165,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const result = await deleteWorkflow(parseInt(id));
+    const result = await deleteWorkflow(id);
     
     return NextResponse.json({
       success: true,

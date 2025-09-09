@@ -9,6 +9,7 @@ export interface IWorkflow extends Document {
   status: 'active' | 'inactive';
   usageCount: number;
   likeCount: number;
+  avatar?: string; // base64格式的头像数据
   created_at: Date;
   updated_at: Date;
 }
@@ -48,6 +49,10 @@ const WorkflowSchema: Schema = new Schema({
     type: Number,
     default: 0,
     min: 0
+  },
+  avatar: {
+    type: String,
+    required: false
   }
 }, {
   timestamps: {
@@ -62,5 +67,10 @@ WorkflowSchema.index({ status: 1 });
 WorkflowSchema.index({ category_id: 1 });
 WorkflowSchema.index({ created_at: -1 });
 
-const WorkflowModel = (mongoose.models.Workflow as mongoose.Model<IWorkflow>) || mongoose.model<IWorkflow>('Workflow', WorkflowSchema);
+// 清除可能存在的模型缓存
+if (mongoose.models.Workflow) {
+  delete mongoose.models.Workflow;
+}
+
+const WorkflowModel = mongoose.model<IWorkflow>('Workflow', WorkflowSchema);
 export default WorkflowModel;

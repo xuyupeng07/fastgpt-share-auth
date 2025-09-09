@@ -3,7 +3,6 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface IWorkflowCategory extends Document {
   _id: mongoose.Types.ObjectId;
   name: string;
-  description?: string;
   sort_order: number;
   status: 'active' | 'inactive';
   created_at: Date;
@@ -15,10 +14,6 @@ const WorkflowCategorySchema: Schema = new Schema({
     type: String,
     required: true,
     unique: true,
-    trim: true
-  },
-  description: {
-    type: String,
     trim: true
   },
   sort_order: {

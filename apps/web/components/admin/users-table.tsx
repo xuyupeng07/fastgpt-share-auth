@@ -10,7 +10,7 @@ import { Input } from "@workspace/ui/components/input"
 import { Label } from "@workspace/ui/components/label"
 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@workspace/ui/components/dropdown-menu"
-import { MoreHorizontal, Edit, Trash2, Key, Mail, Shield, ShieldOff, UserCheck, UserX } from "lucide-react"
+import { MoreHorizontal, Edit, Trash2, Key, Mail, Shield, ShieldOff, UserCheck, UserX, Plus } from "lucide-react"
 import { useStats } from "@/contexts/stats-context"
 
 interface User {
@@ -34,10 +34,21 @@ export function UsersTable() {
   // 对话框状态
   const [editPasswordDialog, setEditPasswordDialog] = useState(false)
   const [editEmailDialog, setEditEmailDialog] = useState(false)
+  const [addUserDialog, setAddUserDialog] = useState(false)
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [newPassword, setNewPassword] = useState('')
   const [newEmail, setNewEmail] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  
+  // 新增用户表单数据
+  const [newUserData, setNewUserData] = useState({
+    username: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    balance: 0,
+    is_admin: false
+  })
 
 
   useEffect(() => {
@@ -248,6 +259,66 @@ export function UsersTable() {
     return new Date(dateString).toLocaleString('zh-CN')
   }
 
+  // 重置新增用户表单
+  const resetAddUserForm = () => {
+    setNewUserData({
+      username: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+      balance: 0,
+      is_admin: false
+    })
+  }
+
+  // 新增用户
+  const handleAddUser = async () => {
+    if (!newUserData.username || !newUserData.email || !newUserData.password) {
+      alert('请填写所有必填字段')
+      return
+    }
+
+    if (newUserData.password !== newUserData.confirmPassword) {
+      alert('两次输入的密码不一致')
+      return
+    }
+
+    if (newUserData.password.length < 6) {
+      alert('密码长度至少6位')
+      return
+    }
+
+    try {
+      const response = await fetch('/api/users/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: newUserData.username,
+          email: newUserData.email,
+          password: newUserData.password,
+          balance: newUserData.balance,
+          is_admin: newUserData.is_admin
+        }),
+      })
+
+      if (response.ok) {
+        alert('用户创建成功')
+        setAddUserDialog(false)
+        resetAddUserForm()
+        fetchUsers() // 重新获取用户列表
+        refreshStats()
+      } else {
+        const errorData = await response.json()
+        alert('创建用户失败: ' + errorData.error)
+      }
+    } catch (error) {
+      console.error('创建用户失败:', error)
+      alert('创建用户失败，请稍后重试')
+    }
+  }
+
 
 
 
@@ -268,7 +339,118 @@ export function UsersTable() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>用户管理</CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle>用户管理</CardTitle>
+          <Dialog open={addUserDialog} onOpenChange={setAddUserDialog}>
+            <DialogTrigger asChild>
+              <Button onClick={() => resetAddUserForm()}>
+                <Plus className="h-4 w-4 mr-2" />
+                新增用户
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>新增用户</DialogTitle>
+                <DialogDescription>
+                  创建新的用户账户
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="username" className="text-right">
+                    用户名 *
+                  </Label>
+                  <Input
+                    id="username"
+                    value={newUserData.username}
+                    onChange={(e) => setNewUserData({...newUserData, username: e.target.value})}
+                    className="col-span-3"
+                    placeholder="请输入用户名"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="email" className="text-right">
+                    邮箱 *
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={newUserData.email}
+                    onChange={(e) => setNewUserData({...newUserData, email: e.target.value})}
+                    className="col-span-3"
+                    placeholder="请输入邮箱"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="password" className="text-right">
+                    密码 *
+                  </Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={newUserData.password}
+                    onChange={(e) => setNewUserData({...newUserData, password: e.target.value})}
+                    className="col-span-3"
+                    placeholder="请输入密码（至少6位）"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="confirmPassword" className="text-right">
+                    确认密码 *
+                  </Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    value={newUserData.confirmPassword}
+                    onChange={(e) => setNewUserData({...newUserData, confirmPassword: e.target.value})}
+                    className="col-span-3"
+                    placeholder="请再次输入密码"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="balance" className="text-right">
+                    初始余额
+                  </Label>
+                  <Input
+                    id="balance"
+                    type="number"
+                    value={newUserData.balance}
+                    onChange={(e) => setNewUserData({...newUserData, balance: Number(e.target.value)})}
+                    className="col-span-3"
+                    placeholder="0"
+                    min="0"
+                    step="0.01"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="is_admin" className="text-right">
+                    管理员权限
+                  </Label>
+                  <div className="col-span-3">
+                    <input
+                      id="is_admin"
+                      type="checkbox"
+                      checked={newUserData.is_admin}
+                      onChange={(e) => setNewUserData({...newUserData, is_admin: e.target.checked})}
+                      className="h-4 w-4"
+                    />
+                    <Label htmlFor="is_admin" className="ml-2 text-sm">
+                      设为管理员
+                    </Label>
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setAddUserDialog(false)}>
+                  取消
+                </Button>
+                <Button type="button" onClick={handleAddUser}>
+                  创建用户
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="rounded-md border">
@@ -296,13 +478,13 @@ export function UsersTable() {
                 users.map((user, index) => (
                   <TableRow 
                     key={user.id}
-                    className="hover:bg-gray-50/50 transition-colors"
+                    className="hover:bg-muted/50 transition-colors"
                   >
-                    <TableCell className="pl-6 font-mono text-xs text-gray-500 max-w-56 truncate" title={user.id.toString()}>{user.id.toString()}</TableCell>
+                    <TableCell className="pl-6 font-mono text-xs text-muted-foreground max-w-56 truncate" title={user.id.toString()}>{user.id.toString()}</TableCell>
                     <TableCell className="font-medium">{user.username}</TableCell>
-                    <TableCell className="text-gray-600">{user.email}</TableCell>
+                    <TableCell className="text-muted-foreground">{user.email}</TableCell>
                     <TableCell className="text-center">
-                      <span className="font-semibold text-green-600">
+                      <span className="font-semibold text-green-600 dark:text-green-400">
                         ¥{(parseFloat(String(user.balance)) || 0).toFixed(2)}
                       </span>
                     </TableCell>
@@ -316,53 +498,53 @@ export function UsersTable() {
                         {user.is_admin ? '是' : '否'}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-sm text-gray-500">{formatDate(user.created_at)}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{formatDate(user.created_at)}</TableCell>
                     <TableCell className="text-center">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button 
                             variant="ghost" 
-                            className="h-6 w-6 p-0 transition-all duration-200 hover:bg-gray-100 hover:scale-110 hover:bg-blue-50 rounded-md"
+                            className="h-6 w-6 p-0 transition-all duration-200 hover:bg-muted hover:scale-110 rounded-md"
                           >
                             <span className="sr-only">操作菜单</span>
-                            <MoreHorizontal className="h-3.5 w-3.5 transition-colors hover:text-blue-600" />
+                            <MoreHorizontal className="h-3.5 w-3.5 transition-colors" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent 
                           side="auto" 
-                          className="bg-white border border-gray-200 shadow-xl rounded-lg"
+                          className="shadow-xl"
                         >
                           <DropdownMenuItem 
                             onClick={() => openPasswordDialog(user)}
-                            className="cursor-pointer flex items-center gap-2 hover:bg-blue-50 hover:text-blue-700"
+                            className="cursor-pointer flex items-center gap-2"
                           >
                             <Key className="h-4 w-4" />
                             修改密码
                           </DropdownMenuItem>
                           <DropdownMenuItem 
                             onClick={() => openEmailDialog(user)}
-                            className="cursor-pointer flex items-center gap-2 hover:bg-blue-50 hover:text-blue-700"
+                            className="cursor-pointer flex items-center gap-2"
                           >
                             <Mail className="h-4 w-4" />
                             修改邮箱
                           </DropdownMenuItem>
                           <DropdownMenuItem 
                             onClick={() => handleAdminChange(user.id, !user.is_admin)}
-                            className="cursor-pointer flex items-center gap-2 hover:bg-purple-50 hover:text-purple-700"
+                            className="cursor-pointer flex items-center gap-2"
                           >
                             {user.is_admin ? <ShieldOff className="h-4 w-4" /> : <Shield className="h-4 w-4" />}
                             {user.is_admin ? '取消管理员' : '设为管理员'}
                           </DropdownMenuItem>
                           <DropdownMenuItem 
                             onClick={() => handleStatusChange(user.id, user.status === 'active' ? 'inactive' : 'active')}
-                            className="cursor-pointer flex items-center gap-2 hover:bg-yellow-50 hover:text-yellow-700"
+                            className="cursor-pointer flex items-center gap-2"
                           >
                             <Edit className="h-4 w-4" />
                             {user.status === 'active' ? '禁用用户' : '启用用户'}
                           </DropdownMenuItem>
                           <DropdownMenuItem 
                             onClick={() => handleDeleteUser(user.id)}
-                            className="cursor-pointer flex items-center gap-2 hover:bg-red-50 hover:text-red-700 text-red-600"
+                            className="cursor-pointer flex items-center gap-2 text-destructive"
                           >
                             <Trash2 className="h-4 w-4" />
                             删除用户
@@ -471,7 +653,7 @@ export function UsersTable() {
                 id="current-email"
                 value={selectedUser?.email || ''}
                 disabled
-                className="col-span-3 bg-gray-50"
+                className="col-span-3 bg-muted"
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">

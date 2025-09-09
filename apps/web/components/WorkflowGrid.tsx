@@ -186,7 +186,7 @@ export function WorkflowGrid({ workflows, onTryWorkflow, onLike, authToken }: Wo
 
       {/* 工作流网格 */}
       {filteredAndSortedWorkflows.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
           {filteredAndSortedWorkflows.map((workflow) => (
             <WorkflowCard
               key={workflow.id}

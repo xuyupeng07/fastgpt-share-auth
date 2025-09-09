@@ -54,7 +54,11 @@ const Tooltip = ({
       {isVisible && (
         <div 
           className={cn(
-            "absolute z-[99999999999] px-3 py-1.5 text-xs bg-gray-900 text-white rounded-md shadow-lg pointer-events-none whitespace-nowrap",
+            "absolute z-[9999] px-3 py-2 text-sm rounded-md shadow-2xl pointer-events-none",
+            "bg-popover text-popover-foreground border border-border",
+            "w-max min-w-0 max-w-[320px]",
+            "animate-in fade-in-0 zoom-in-95 duration-200",
+            "whitespace-pre-wrap break-words leading-relaxed",
             getPositionClasses(),
             className
           )}
@@ -62,7 +66,7 @@ const Tooltip = ({
           {content}
           <div 
             className={cn(
-              "absolute w-2 h-2 bg-gray-900 transform rotate-45",
+              "absolute w-2 h-2 bg-popover border-l border-t border-border transform rotate-45",
               side === "top" && "top-full left-1/2 -translate-x-1/2 -mt-1",
               side === "bottom" && "bottom-full left-1/2 -translate-x-1/2 -mb-1",
               side === "left" && "left-full top-1/2 -translate-y-1/2 -ml-1",

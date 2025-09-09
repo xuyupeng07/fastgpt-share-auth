@@ -7,7 +7,8 @@ function transformWorkflowToCard(workflow: any) {
     id: workflow._id?.toString() || workflow.id?.toString(),
     name: workflow.name,
     description: workflow.description,
-    logo: '/fastgpt.svg', // 默认logo
+    logo: workflow.avatar || '/fastgpt.svg', // 优先使用自定义头像，否则使用默认logo
+    avatar: workflow.avatar, // 添加avatar字段
     isVip: false, // 默认非VIP
     demo_url: workflow.no_login_url, // 使用no_login_url作为demo_url
     config: { model: 'gpt-4', temperature: 0.7 }, // 默认配置

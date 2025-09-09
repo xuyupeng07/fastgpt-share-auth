@@ -283,7 +283,7 @@ export default function ProfilePage() {
                 <p className="font-medium">{userInfo.username}</p>
               </div>
               <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">数据库ID</p>
+                <p className="text-sm text-muted-foreground">用户ID</p>
                 <p className="font-medium text-xs">{userInfo.id}</p>
               </div>
 
@@ -333,24 +333,36 @@ export default function ProfilePage() {
                   </div>
                 ) : (
                   <div className="rounded-md border">
-                    <Table className="table-fixed">
+                    <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>消费时间</TableHead>
-                          <TableHead>Token使用量</TableHead>
-                          <TableHead>积分消耗</TableHead>
-                          <TableHead>费用</TableHead>
-                          <TableHead>操作</TableHead>
+                          <TableHead className="w-44">消费时间</TableHead>
+                          <TableHead className="w-32 text-center">Token使用</TableHead>
+                          <TableHead className="w-32 text-center">积分消费</TableHead>
+                          <TableHead className="w-32 text-center">消费金额</TableHead>
+                          <TableHead className="w-24 text-center">操作</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {consumptionRecords.map((record) => (
                           <TableRow key={record.id}>
-                            <TableCell>{formatDate(record.created_at)}</TableCell>
-                            <TableCell>{record.token_used}</TableCell>
-                            <TableCell>{record.points_used}</TableCell>
-                            <TableCell>{parseFloat(record.cost?.toString() || '0').toFixed(4)}</TableCell>
-                            <TableCell>
+                            <TableCell className="text-sm text-muted-foreground">{formatDate(record.created_at)}</TableCell>
+                            <TableCell className="text-center">
+                              <span className="font-mono text-blue-600 dark:text-blue-400 font-semibold">
+                                {(record.token_used || 0).toLocaleString()}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <span className="font-mono text-purple-600 dark:text-purple-400 font-semibold">
+                                {(parseFloat(record.points_used?.toString() || '0')).toFixed(4)}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <span className="font-semibold text-red-600 dark:text-red-400">
+                                ¥{parseFloat(record.cost?.toString() || '0').toFixed(4)}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-center">
                               <Dialog>
                                 <DialogTrigger asChild>
                                   <Button 
@@ -359,7 +371,6 @@ export default function ProfilePage() {
                                     disabled={detailLoading[record.id]}
                                     onClick={() => fetchRecordDetail(record.id)}
                                   >
-                                    <Eye className="h-4 w-4 mr-1" />
                                     {detailLoading[record.id] ? "加载中..." : "详情"}
                                   </Button>
                                 </DialogTrigger>
@@ -443,25 +454,33 @@ export default function ProfilePage() {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="w-[20%] min-w-[160px]">充值时间</TableHead>
-                          <TableHead className="w-[15%] text-center">充值金额</TableHead>
-                          <TableHead className="w-[15%] text-center">充值前余额</TableHead>
-                          <TableHead className="w-[15%] text-center">充值后余额</TableHead>
-                          <TableHead className="w-[35%]">备注</TableHead>
+                          <TableHead className="w-44">充值时间</TableHead>
+                          <TableHead className="w-32 text-center">充值金额</TableHead>
+                          <TableHead className="w-32 text-center">充值前余额</TableHead>
+                          <TableHead className="w-32 text-center">充值后余额</TableHead>
+                          <TableHead className="w-32">备注</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {rechargeRecords.map((record) => (
                           <TableRow key={record.id}>
-                            <TableCell className="w-[20%]">{formatDate(record.created_at)}</TableCell>
-                            <TableCell className="w-[15%] text-center">
-                              <span className="font-semibold text-green-600">
-                                +{record.amount}
+                            <TableCell className="text-sm text-muted-foreground">{formatDate(record.created_at)}</TableCell>
+                            <TableCell className="text-center">
+                              <span className="font-semibold text-green-600 dark:text-green-400">
+                                +¥{parseFloat(record.amount?.toString() || '0').toFixed(2)}
                               </span>
                             </TableCell>
-                            <TableCell className="w-[15%] text-center">{parseFloat(record.balance_before?.toString() || '0').toFixed(2)}</TableCell>
-                            <TableCell className="w-[15%] text-center">{parseFloat(record.balance_after?.toString() || '0').toFixed(2)}</TableCell>
-                            <TableCell className="w-[35%] text-gray-600">{record.remark || '-'}</TableCell>
+                            <TableCell className="text-center">
+                              <span className="font-mono text-muted-foreground">
+                                ¥{parseFloat(record.balance_before?.toString() || '0').toFixed(2)}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <span className="font-semibold text-blue-600 dark:text-blue-400">
+                                ¥{parseFloat(record.balance_after?.toString() || '0').toFixed(2)}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground max-w-32 truncate" title={record.remark || '-'}>{record.remark || '-'}</TableCell>
                           </TableRow>
                         ))}
                       </TableBody>

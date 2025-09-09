@@ -7,7 +7,7 @@ import { Label } from '@workspace/ui/components/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@workspace/ui/components/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@workspace/ui/components/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@workspace/ui/components/dialog';
-import { Plus, Edit, Trash2, ExternalLink, Check, X } from 'lucide-react';
+import { Plus, Edit, Trash2, ExternalLink, Check, X, Upload, Image } from 'lucide-react';
 
 // 工作流接口类型
 interface Workflow {
@@ -18,6 +18,7 @@ interface Workflow {
   status: 'active' | 'inactive';
   category_id?: string;
   category_name?: string;
+  avatar?: string; // base64格式的头像数据
   created_at: string;
   updated_at: string;
 }
@@ -29,6 +30,7 @@ interface WorkflowFormData {
   no_login_url: string;
   status: 'active' | 'inactive';
   category_id: string;
+  avatar?: string; // base64格式的头像数据
 }
 
 // 分类接口类型
@@ -36,7 +38,6 @@ interface Category {
   _id: string;
   id: string;
   name: string;
-  description?: string;
   sort_order: number;
   status: 'active' | 'inactive';
   created_at: string;
@@ -56,7 +57,8 @@ export default function WorkflowsTable() {
     description: '',
     no_login_url: '',
     status: 'active',
-    category_id: ''
+    category_id: '',
+    avatar: ''
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -110,7 +112,8 @@ export default function WorkflowsTable() {
       description: '',
       no_login_url: '',
       status: 'active',
-      category_id: ''
+      category_id: '',
+      avatar: ''
     });
     setEditingWorkflow(null);
   };
@@ -129,9 +132,40 @@ export default function WorkflowsTable() {
       description: workflow.description,
       no_login_url: workflow.no_login_url,
       status: workflow.status,
-      category_id: workflow.category_id || ''
+      category_id: workflow.category_id || '',
+      avatar: workflow.avatar || ''
     });
     setIsDialogOpen(true);
+  };
+
+  // 处理头像上传
+  const handleAvatarUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // 检查文件类型
+    if (!file.type.startsWith('image/')) {
+      showMessage('请选择图片文件', 'error');
+      return;
+    }
+
+    // 检查文件大小 (限制为2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      showMessage('图片大小不能超过2MB', 'error');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const base64 = e.target?.result as string;
+      setFormData({ ...formData, avatar: base64 });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // 清除头像
+  const clearAvatar = () => {
+    setFormData({ ...formData, avatar: '' });
   };
 
   // 关闭对话框
@@ -213,10 +247,7 @@ export default function WorkflowsTable() {
     }
   };
 
-  // 测试链接
-  const testLink = (url: string) => {
-    window.open(url, '_blank');
-  };
+
 
   // 格式化日期
   const formatDate = (dateString: string) => {
@@ -300,6 +331,58 @@ export default function WorkflowsTable() {
                   placeholder="https://example.com/workflow"
                 />
               </div>
+              <div className="grid grid-cols-4 items-start gap-4">
+                <Label htmlFor="avatar" className="text-right pt-2">
+                  工作流头像
+                </Label>
+                <div className="col-span-3">
+                  <div className="flex items-center gap-4">
+                    {formData.avatar ? (
+                      <div className="relative">
+                        <img 
+                          src={formData.avatar} 
+                          alt="头像预览"
+                          className="w-16 h-16 rounded-lg object-contain border-2 border-gray-200"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={clearAvatar}
+                          className="absolute -top-2 -right-2 w-6 h-6 rounded-full p-0 bg-red-500 text-white hover:bg-red-600"
+                        >
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="w-16 h-16 rounded-lg bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center">
+                        <Image className="w-6 h-6 text-gray-400" />
+                      </div>
+                    )}
+                    <div className="flex-1">
+                      <input
+                        type="file"
+                        id="avatar-upload"
+                        accept="image/*"
+                        onChange={handleAvatarUpload}
+                        className="hidden"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => document.getElementById('avatar-upload')?.click()}
+                        className="w-full"
+                      >
+                        <Upload className="w-4 h-4 mr-2" />
+                        {formData.avatar ? '更换头像' : '上传头像'}
+                      </Button>
+                      <p className="text-xs text-gray-500 mt-1">
+                        支持 JPG、PNG 格式，文件大小不超过 2MB
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="category_id" className="text-right">
                   分类
@@ -363,10 +446,9 @@ export default function WorkflowsTable() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-16 text-center">头像</TableHead>
               <TableHead className="w-40">工作流名称</TableHead>
-              <TableHead className="w-48">描述</TableHead>
               <TableHead className="w-32">分类</TableHead>
-              <TableHead className="w-48">免登录链接</TableHead>
               <TableHead className="w-20 text-center">状态</TableHead>
               <TableHead className="w-40">创建时间</TableHead>
               <TableHead className="w-32 text-center">操作</TableHead>
@@ -375,54 +457,48 @@ export default function WorkflowsTable() {
           <TableBody>
             {workflows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                   暂无工作流数据
                 </TableCell>
               </TableRow>
             ) : (
               workflows.map((workflow) => (
                 <TableRow key={workflow.id}>
-                  <TableCell className="font-medium text-gray-900">{workflow.name}</TableCell>
-                  <TableCell className="max-w-xs truncate text-gray-600" title={workflow.description}>
-                    {workflow.description}
+                  <TableCell className="text-center">
+                    <div className="flex justify-center">
+                      {workflow.avatar ? (
+                        <img 
+                          src={workflow.avatar} 
+                          alt={workflow.name}
+                          className="w-8 h-8 rounded-lg object-contain"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 rounded-lg bg-gray-200 flex items-center justify-center">
+                          <Image className="w-4 h-4 text-gray-400" />
+                        </div>
+                      )}
+                    </div>
                   </TableCell>
-                  <TableCell className="text-gray-600">
+                  <TableCell className="font-medium text-foreground">{workflow.name}</TableCell>
+                  <TableCell className="text-muted-foreground">
                     {workflow.category_name || 
                       categories.find(cat => cat._id === workflow.category_id)?.name || 
                       '未分类'
                     }
                   </TableCell>
-                  <TableCell className="max-w-xs truncate">
-                    <a 
-                      href={workflow.no_login_url} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:text-blue-800 underline text-sm"
-                      title={workflow.no_login_url}
-                    >
-                      {workflow.no_login_url}
-                    </a>
-                  </TableCell>
                   <TableCell className="text-center">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                       workflow.status === 'active' 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-gray-100 text-gray-800'
+                        ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' 
+                        : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'
                     }`}>
                       {workflow.status === 'active' ? '启用' : '禁用'}
                     </span>
                   </TableCell>
-                  <TableCell className="text-sm text-gray-500">{formatDate(workflow.created_at)}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{formatDate(workflow.created_at)}</TableCell>
                   <TableCell className="text-center">
                     <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => testLink(workflow.no_login_url)}
-                        title="测试链接"
-                      >
-                        <ExternalLink className="h-4 w-4" />
-                      </Button>
+
                       <Button
                         variant="outline"
                         size="sm"

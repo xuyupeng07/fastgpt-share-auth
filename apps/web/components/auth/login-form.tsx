@@ -6,7 +6,11 @@ import { Input } from "@workspace/ui/components/input"
 import { Label } from "@workspace/ui/components/label"
 import { AlertMessage } from "@/components/ui/alert-message"
 
-export function LoginForm() {
+interface LoginFormProps {
+  onSuccess?: () => void
+}
+
+export function LoginForm({ onSuccess }: LoginFormProps = {}) {
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -55,9 +59,13 @@ export function LoginForm() {
         // 设置cookie供中间件使用
         document.cookie = `authToken=${data.data.token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`
         
-        // 跳转到根地址
+        // 调用成功回调
         setTimeout(() => {
-          window.location.href = '/'
+          if (onSuccess) {
+            onSuccess()
+          } else {
+            window.location.href = '/'
+          }
         }, 1000)
       } else {
         showAlert(data.message || "登录失败")

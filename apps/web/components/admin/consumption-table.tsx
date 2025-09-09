@@ -199,21 +199,21 @@ export function ConsumptionTable() {
                   <TableRow key={record.id}>
                     <TableCell className="pl-6 font-medium">{record.username}</TableCell>
                     <TableCell className="text-center">
-                      <span className="font-mono text-blue-600 font-semibold">
+                      <span className="font-mono text-blue-600 dark:text-blue-400 font-semibold">
                         {(record.token_used || 0).toLocaleString()}
                       </span>
                     </TableCell>
                     <TableCell className="text-center">
-                      <span className="font-mono text-purple-600 font-semibold">
+                      <span className="font-mono text-purple-600 dark:text-purple-400 font-semibold">
                         {(parseFloat(record.points_used) || 0).toFixed(4)}
                       </span>
                     </TableCell>
                     <TableCell className="text-center">
-                      <span className="font-semibold text-red-600">
+                      <span className="font-semibold text-red-600 dark:text-red-400">
                         ¥{(parseFloat(record.cost) || 0).toFixed(4)}
                       </span>
                     </TableCell>
-                    <TableCell className="text-sm text-gray-500">
+                    <TableCell className="text-sm text-muted-foreground">
                       {formatDate(record.created_at)}
                     </TableCell>
                     <TableCell className="text-center">

@@ -28,7 +28,6 @@ interface Category {
   _id: string
   id: string
   name: string
-  description?: string
   sort_order: number
   status: 'active' | 'inactive'
   created_at: string
@@ -38,7 +37,6 @@ interface Category {
 // 表单数据类型
 interface CategoryFormData {
   name: string
-  description: string
   sort_order: number
   status: 'active' | 'inactive'
 }
@@ -52,7 +50,6 @@ export function CategoriesTable() {
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
   const [formData, setFormData] = useState<CategoryFormData>({
     name: '',
-    description: '',
     sort_order: 0,
     status: 'active'
   })
@@ -96,7 +93,6 @@ export function CategoriesTable() {
   const resetForm = () => {
     setFormData({
       name: '',
-      description: '',
       sort_order: 0,
       status: 'active'
     })
@@ -113,7 +109,6 @@ export function CategoriesTable() {
     setSelectedCategory(category)
     setFormData({
       name: category.name,
-      description: category.description || '',
       sort_order: category.sort_order,
       status: category.status
     })
@@ -229,35 +224,35 @@ export function CategoriesTable() {
   }
 
   return (
-    <div className="space-y-4">
-      {/* 消息提示 */}
-      {message && (
-        <div className={`p-4 rounded-md border ${message.type === 'error' ? 'border-red-500 bg-red-50' : 'border-green-500 bg-green-50'}`}>
-          <div className="flex items-center">
-            <AlertCircle className="h-4 w-4 mr-2" />
-            <span className={message.type === 'error' ? 'text-red-700' : 'text-green-700'}>
-              {message.text}
-            </span>
-          </div>
+    <Card>
+      <CardHeader>
+        <div className="flex justify-between items-center">
+          <CardTitle>分类管理</CardTitle>
+          <Button onClick={openCreateDialog}>
+            <Plus className="h-4 w-4 mr-2" />
+            新增分类
+          </Button>
         </div>
-      )}
+      </CardHeader>
+      <CardContent>
+        {/* 消息提示 */}
+        {message && (
+          <div className={`p-4 rounded-md border mb-4 ${message.type === 'error' ? 'border-red-500 bg-red-50' : 'border-green-500 bg-green-50'}`}>
+            <div className="flex items-center">
+              <AlertCircle className="h-4 w-4 mr-2" />
+              <span className={message.type === 'error' ? 'text-red-700' : 'text-green-700'}>
+                {message.text}
+              </span>
+            </div>
+          </div>
+        )}
 
-      {/* 操作栏 */}
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">分类管理</h2>
-        <Button onClick={openCreateDialog}>
-          <Plus className="h-4 w-4 mr-2" />
-          新增分类
-        </Button>
-      </div>
-
-      {/* 分类表格 */}
-      <div className="border rounded-lg">
+        {/* 分类表格 */}
+        <div className="border rounded-lg">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>分类名称</TableHead>
-              <TableHead>描述</TableHead>
               <TableHead>排序</TableHead>
               <TableHead>状态</TableHead>
               <TableHead>创建时间</TableHead>
@@ -268,7 +263,7 @@ export function CategoriesTable() {
           <TableBody>
             {categories.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                   暂无分类数据
                 </TableCell>
               </TableRow>
@@ -276,13 +271,12 @@ export function CategoriesTable() {
               categories.map((category) => (
                 <TableRow key={category.id}>
                   <TableCell className="font-medium">{category.name}</TableCell>
-                  <TableCell>{category.description || '-'}</TableCell>
                   <TableCell>{category.sort_order}</TableCell>
                   <TableCell>
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                       category.status === 'active' 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-gray-100 text-gray-800'
+                        ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' 
+                        : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'
                     }`}>
                       {category.status === 'active' ? '启用' : '禁用'}
                     </span>
@@ -313,7 +307,8 @@ export function CategoriesTable() {
             )}
           </TableBody>
         </Table>
-      </div>
+        </div>
+      </CardContent>
 
       {/* 创建分类对话框 */}
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
@@ -335,17 +330,6 @@ export function CategoriesTable() {
               />
             </div>
             <div>
-              <Label htmlFor="description">描述</Label>
-              <textarea
-                id="description"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                value={formData.description}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="请输入分类描述（可选）"
-                rows={3}
-              />
-            </div>
-            <div>
               <Label htmlFor="sort_order">排序</Label>
               <Input
                 id="sort_order"
@@ -359,7 +343,7 @@ export function CategoriesTable() {
               <Label htmlFor="status">状态</Label>
               <select
                 id="status"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-input bg-background text-foreground rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
                 value={formData.status}
                 onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFormData({ ...formData, status: e.target.value as 'active' | 'inactive' })}
               >
@@ -399,17 +383,6 @@ export function CategoriesTable() {
               />
             </div>
             <div>
-              <Label htmlFor="edit-description">描述</Label>
-              <textarea
-                id="edit-description"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                value={formData.description}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="请输入分类描述（可选）"
-                rows={3}
-              />
-            </div>
-            <div>
               <Label htmlFor="edit-sort_order">排序</Label>
               <Input
                 id="edit-sort_order"
@@ -423,7 +396,7 @@ export function CategoriesTable() {
               <Label htmlFor="edit-status">状态</Label>
               <select
                 id="edit-status"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-input bg-background text-foreground rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
                 value={formData.status}
                 onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFormData({ ...formData, status: e.target.value as 'active' | 'inactive' })}
               >
@@ -462,6 +435,6 @@ export function CategoriesTable() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </Card>
   )
 }
