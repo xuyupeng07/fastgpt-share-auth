@@ -10,6 +10,7 @@ export interface IWorkflow extends Document {
   usageCount: number;
   likeCount: number;
   avatar?: string; // base64格式的头像数据
+  point_multiplier: number; // 积分倍率，默认为1
   created_at: Date;
   updated_at: Date;
 }
@@ -53,6 +54,11 @@ const WorkflowSchema: Schema = new Schema({
   avatar: {
     type: String,
     required: false
+  },
+  point_multiplier: {
+    type: Number,
+    default: 1,
+    min: 0
   }
 }, {
   timestamps: {

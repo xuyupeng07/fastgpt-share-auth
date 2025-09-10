@@ -330,7 +330,8 @@ export async function createWorkflow(
   noLoginUrl: string,
   status: 'active' | 'inactive' = 'active',
   categoryId?: string,
-  avatar?: string
+  avatar?: string,
+  pointMultiplier: number = 1
 ) {
   try {
     await ensureConnection();
@@ -340,7 +341,8 @@ export async function createWorkflow(
       no_login_url: noLoginUrl,
       status,
       category_id: categoryId,
-      avatar
+      avatar,
+      point_multiplier: pointMultiplier
     });
     
     const result = await workflow.save();
@@ -360,7 +362,8 @@ export async function updateWorkflow(
   noLoginUrl: string,
   status: 'active' | 'inactive',
   categoryId?: string,
-  avatar?: string
+  avatar?: string,
+  pointMultiplier?: number
 ) {
   try {
     await ensureConnection();
@@ -376,6 +379,11 @@ export async function updateWorkflow(
     // 只有当avatar不为undefined时才更新avatar字段
     if (avatar !== undefined) {
       updateData.avatar = avatar;
+    }
+    
+    // 只有当pointMultiplier不为undefined时才更新point_multiplier字段
+    if (pointMultiplier !== undefined) {
+      updateData.point_multiplier = pointMultiplier;
     }
     
     const result = await WorkflowModel.findByIdAndUpdate(

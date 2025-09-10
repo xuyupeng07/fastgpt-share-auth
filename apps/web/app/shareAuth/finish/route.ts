@@ -1,38 +1,45 @@
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
-import { updateUserBalanceById, addConsumptionRecord, getUserById } from "@/lib/db";
+import { updateUserBalanceById, addConsumptionRecord, getUserById, getWorkflowById } from "@/lib/db";
 import { validateToken } from "@/lib/jwt";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { token, responseData } = body;
+    const { token, responseData, workflowId } = body;
+
+
 
     if (!token) {
-      return NextResponse.json(
-        { success: false, message: '缺少token参数' }
-      );
+      const errorResponse = { success: false, message: '缺少token参数' };
+      
+
+      
+      return NextResponse.json(errorResponse);
     }
 
-    console.log('收到对话结束上报:', { token });
+
 
     // 验证JWT token
     const jwtValidation = await validateToken(token);
     
     if (!jwtValidation.success || !jwtValidation.data) {
-      return NextResponse.json(
-        { success: false, message: '身份验证失败，无效的token' }
-      );
+      const errorResponse = { success: false, message: '身份验证失败，无效的token' };
+      
+
+      
+      return NextResponse.json(errorResponse);
     }
     
     // JWT token验证成功，通过用户ID获取用户信息
     const user = await getUserById(jwtValidation.data.userId.toString());
     
     if (!user) {
-      return NextResponse.json(
-        { success: false, message: '用户不存在' },
-        { status: 404 }
-      );
+      const errorResponse = { success: false, message: '用户不存在' };
+      
+
+      
+      return NextResponse.json(errorResponse, { status: 404 });
     }
 
     // 计算总消耗（支持FastGPT格式）
@@ -64,14 +71,26 @@ export async function POST(request: NextRequest) {
     if (body.totalTokens) totalTokens = body.totalTokens;
     if (body.totalPoints) totalPoints = body.totalPoints;
     
-    // 计算费用 - 消耗积分直接等于总费用
-    const cost = totalPoints;
+    // 获取工作流积分倍率
+    let pointMultiplier = 1; // 默认倍率为1
+    
+    if (workflowId) {
+      try {
+        const workflow = await getWorkflowById(workflowId);
+        
+        if (workflow && workflow.point_multiplier !== undefined) {
+          pointMultiplier = workflow.point_multiplier;
+        }
+      } catch (error) {
+        // 如果获取失败，使用默认倍率1
+      }
+    }
+    
+    // 计算费用 - 消耗积分 × 倍率
+    const cost = totalPoints * pointMultiplier;
 
     // 移除余额检查，允许余额扣成负数
     const currentBalance = user.balance;
-    console.log(`用户 ${user.username} 当前余额: ${currentBalance}, 本次消费: ${cost}`);
-
-    console.log(`用户 ${user.username} 对话结束 - 消耗积分: ${totalPoints}, 消耗Token: ${totalTokens}, 总费用: ${cost.toFixed(4)}积分`);
 
     try {
       // 使用MongoDB事务处理余额扣除和消费记录
@@ -89,7 +108,7 @@ export async function POST(request: NextRequest) {
             totalTokens,
             totalPoints,
             cost,
-            responseData,
+            body.responseData,
             session,
             token
           );
@@ -101,18 +120,26 @@ export async function POST(request: NextRequest) {
         const updatedUser = await getUserById(user!._id.toString());
         const newBalance = updatedUser?.balance || 0;
         
-        console.log(`用户 ${user!.username} 余额扣除成功，剩余余额: ${newBalance}`);
+
         
-        return NextResponse.json({
+        // 构建响应数据
+        const responseData = {
           success: true,
           message: '上报成功',
           data: {
             cost: cost,
             balance: newBalance,
             tokens: totalTokens,
-            points: totalPoints
+            points: totalPoints,
+            originalPoints: totalPoints,
+            pointMultiplier: pointMultiplier,
+            workflowId: workflowId
           }
-        });
+        };
+        
+
+        
+        return NextResponse.json(responseData);
         
       } catch (error) {
         await session.endSession();
@@ -120,15 +147,13 @@ export async function POST(request: NextRequest) {
       }
       
     } catch (error) {
-      console.error('处理消费记录失败:', error);
-      return NextResponse.json(
-        { success: false, message: '处理消费记录失败' }
-      );
+      const errorResponse = { success: false, message: '处理消费记录失败' };
+      
+      return NextResponse.json(errorResponse);
     }
   } catch (error) {
-    console.error('对话结束API错误:', error);
-    return NextResponse.json(
-      { success: false, message: '服务器错误' }
-    );
+    const errorResponse = { success: false, message: '服务器错误' };
+    
+    return NextResponse.json(errorResponse);
   }
 }

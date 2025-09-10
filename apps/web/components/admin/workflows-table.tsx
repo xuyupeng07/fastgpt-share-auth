@@ -20,6 +20,7 @@ interface Workflow {
   category_id?: string;
   category_name?: string;
   avatar?: string; // base64格式的头像数据
+  point_multiplier: number; // 积分倍率
   created_at: string;
   updated_at: string;
 }
@@ -32,6 +33,7 @@ interface WorkflowFormData {
   status: 'active' | 'inactive';
   category_id: string;
   avatar?: string; // base64格式的头像数据
+  point_multiplier: number; // 积分倍率
 }
 
 // 分类接口类型
@@ -59,7 +61,8 @@ export default function WorkflowsTable() {
     no_login_url: '',
     status: 'active',
     category_id: '',
-    avatar: ''
+    avatar: '',
+    point_multiplier: 1
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -114,7 +117,8 @@ export default function WorkflowsTable() {
       no_login_url: '',
       status: 'active',
       category_id: '',
-      avatar: ''
+      avatar: '',
+      point_multiplier: 1
     });
     setEditingWorkflow(null);
   };
@@ -134,7 +138,8 @@ export default function WorkflowsTable() {
       no_login_url: workflow.no_login_url,
       status: workflow.status,
       category_id: workflow.category_id || '',
-      avatar: workflow.avatar || ''
+      avatar: workflow.avatar || '',
+      point_multiplier: workflow.point_multiplier || 1
     });
     setIsDialogOpen(true);
   };
@@ -405,6 +410,28 @@ export default function WorkflowsTable() {
                 </select>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="point_multiplier" className="text-right">
+                  积分倍率 *
+                </Label>
+                <Input
+                  id="point_multiplier"
+                  type="number"
+                  min="0"
+                  step="0.1"
+                  value={formData.point_multiplier}
+                  onChange={(e) => {
+                    const value = parseFloat(e.target.value);
+                    if (!isNaN(value) && value >= 0) {
+                      setFormData({ ...formData, point_multiplier: value });
+                    } else if (e.target.value === '') {
+                      setFormData({ ...formData, point_multiplier: 0 });
+                    }
+                  }}
+                  className="col-span-3"
+                  placeholder="请输入积分倍率（≥0）"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="status" className="text-right">
                   状态
                 </Label>
@@ -450,17 +477,18 @@ export default function WorkflowsTable() {
           <TableHeader>
             <TableRow>
               <TableHead className="pl-6 w-20 text-center">头像</TableHead>
-              <TableHead className="w-48">工作流名称</TableHead>
-              <TableHead className="w-32">分类</TableHead>
-              <TableHead className="w-24 text-center">状态</TableHead>
-              <TableHead className="w-44">创建时间</TableHead>
-              <TableHead className="w-32 text-center">操作</TableHead>
+              <TableHead className="w-40">工作流名称</TableHead>
+              <TableHead className="w-24">分类</TableHead>
+              <TableHead className="w-20 text-center">积分倍率</TableHead>
+              <TableHead className="w-20 text-center">状态</TableHead>
+              <TableHead className="w-36">创建时间</TableHead>
+              <TableHead className="w-28 text-center">操作</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {workflows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                   暂无工作流数据
                 </TableCell>
               </TableRow>
@@ -490,6 +518,11 @@ export default function WorkflowsTable() {
                       categories.find(cat => cat._id === workflow.category_id)?.name || 
                       '未分类'
                     }
+                  </TableCell>
+                  <TableCell className="text-center font-medium">
+                    <span className="inline-flex items-center px-2 py-1 rounded-md text-sm font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
+                      {workflow.point_multiplier}x
+                    </span>
                   </TableCell>
                   <TableCell className="text-center">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${

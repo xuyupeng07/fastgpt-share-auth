@@ -75,6 +75,9 @@ importers:
       lucide-react:
         specifier: ^0.475.0
         version: 0.475.0(react@19.1.1)
+      mongodb:
+        specifier: ^6.19.0
+        version: 6.19.0(socks@2.8.6)
       mongoose:
         specifier: ^8.18.0
         version: 8.18.0(socks@2.8.6)
@@ -87,6 +90,9 @@ importers:
       next-themes:
         specifier: ^0.4.6
         version: 0.4.6(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      node-fetch:
+        specifier: ^3.3.2
+        version: 3.3.2
       react:
         specifier: ^19.1.1
         version: 19.1.1
