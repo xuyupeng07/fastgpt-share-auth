@@ -252,12 +252,12 @@ export function CategoriesTable() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>分类名称</TableHead>
-              <TableHead>排序</TableHead>
-              <TableHead>状态</TableHead>
-              <TableHead>创建时间</TableHead>
-              <TableHead>更新时间</TableHead>
-              <TableHead>操作</TableHead>
+              <TableHead className="pl-6 w-48">分类名称</TableHead>
+              <TableHead className="w-24 text-center">排序</TableHead>
+              <TableHead className="w-24 text-center">状态</TableHead>
+              <TableHead className="w-44">创建时间</TableHead>
+              <TableHead className="w-44">更新时间</TableHead>
+              <TableHead className="w-32 text-center">操作</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -270,9 +270,9 @@ export function CategoriesTable() {
             ) : (
               categories.map((category) => (
                 <TableRow key={category.id}>
-                  <TableCell className="font-medium">{category.name}</TableCell>
-                  <TableCell>{category.sort_order}</TableCell>
-                  <TableCell>
+                  <TableCell className="pl-6 font-medium">{category.name}</TableCell>
+                  <TableCell className="text-center">{category.sort_order}</TableCell>
+                  <TableCell className="text-center">
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                       category.status === 'active' 
                         ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' 
@@ -281,10 +281,10 @@ export function CategoriesTable() {
                       {category.status === 'active' ? '启用' : '禁用'}
                     </span>
                   </TableCell>
-                  <TableCell>{formatDate(category.created_at)}</TableCell>
-                  <TableCell>{formatDate(category.updated_at)}</TableCell>
-                  <TableCell>
-                    <div className="flex space-x-2">
+                  <TableCell className="text-sm text-muted-foreground">{formatDate(category.created_at)}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{formatDate(category.updated_at)}</TableCell>
+                  <TableCell className="text-center">
+                    <div className="flex justify-center space-x-2">
                       <Button
                         variant="outline"
                         size="sm"

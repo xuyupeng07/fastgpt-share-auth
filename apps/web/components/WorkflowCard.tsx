@@ -7,6 +7,7 @@ import { Tooltip } from './ui/tooltip'
 import { Workflow } from '../lib/types'
 import { Users, Heart } from 'lucide-react'
 import Image from 'next/image'
+import { LoginDialog } from './auth/login-dialog'
 
 interface WorkflowCardProps {
   workflow: Workflow
@@ -19,7 +20,9 @@ interface WorkflowCardProps {
 export function WorkflowCard({ workflow, index = 0, onTryWorkflow, onLike, authToken }: WorkflowCardProps) {
   const [isLiked, setIsLiked] = useState(false)
   const [likeCount, setLikeCount] = useState(workflow.likeCount || 0)
+  const [showLoginDialog, setShowLoginDialog] = useState(false)
   const logoRef = useRef<HTMLDivElement>(null)
+  const cardRef = useRef<HTMLDivElement>(null)
 
 
 
@@ -41,10 +44,16 @@ export function WorkflowCard({ workflow, index = 0, onTryWorkflow, onLike, authT
       const fastgptUrl = `${workflow.demo_url}&authToken=${authToken}`
       window.open(fastgptUrl, '_blank')
     } else if (!authToken) {
-      // 未登录时跳转到登录页
-      window.location.href = '/login'
+      // 未登录时打开登录悬浮框
+      setShowLoginDialog(true)
     }
     onTryWorkflow?.(workflow)
+  }
+
+  const handleLoginSuccess = () => {
+    setShowLoginDialog(false)
+    // 登录成功后可以刷新页面或重新获取用户信息
+    window.location.reload()
   }
 
   const handleLike = async () => {
@@ -76,7 +85,7 @@ export function WorkflowCard({ workflow, index = 0, onTryWorkflow, onLike, authT
   }
 
   return (
-    <div className="workflow-card w-full h-48 sm:h-52 lg:h-56 group relative">
+    <div ref={cardRef} className="workflow-card w-full h-48 sm:h-52 lg:h-56 group relative">
       {workflow.isVip && (
         <div className="absolute top-3 right-0 z-10">
           <div className="relative bg-gradient-to-r from-amber-50 via-yellow-100 to-amber-50 text-amber-700 px-1.5 py-0 rounded-tl-lg rounded-bl-lg shadow-sm backdrop-blur-sm overflow-hidden group">
@@ -89,7 +98,7 @@ export function WorkflowCard({ workflow, index = 0, onTryWorkflow, onLike, authT
         </div>
       )}
       
-      <Card className="workflow-card h-full flex flex-col hover:shadow-xl hover:shadow-black/10 hover:scale-[1.02] transition-all duration-300 ease-out border border-border bg-card rounded-xl overflow-visible p-1 sm:p-1.5 hover:-translate-y-1 relative">
+      <Card className="workflow-card h-full flex flex-col hover:shadow-xl hover:shadow-black/10 transition-all duration-300 ease-out border border-border bg-card rounded-xl overflow-visible p-1 sm:p-1.5 relative">
         {/* 主要内容区域 */}
         <div className="flex-1 px-3 sm:px-4 lg:px-5 pt-2 sm:pt-3 pb-12 sm:pb-14 overflow-visible">
           {/* 顶部区域：logo和基本信息 */}
@@ -161,6 +170,7 @@ export function WorkflowCard({ workflow, index = 0, onTryWorkflow, onLike, authT
            <Tooltip 
              content={workflow.description}
              side="top"
+             anchorRef={cardRef}
            >
              <p className="text-xs sm:text-sm text-muted-foreground line-clamp-4 leading-relaxed mt-1 sm:mt-2 lg:mt-2.5 cursor-pointer hover:text-foreground transition-colors">
                {workflow.description}
@@ -200,7 +210,7 @@ export function WorkflowCard({ workflow, index = 0, onTryWorkflow, onLike, authT
                 authToken && workflow.demo_url
                   ? "快速体验" 
                   : !authToken
-                    ? "跳转至FastGPT登录页，扫码登录后系统将自动创建该工作流"
+                    ? "登录后可使用"
                     : "联系FastGPT商务团队获取更多工作流模板"
               }
               side="top"
@@ -222,6 +232,13 @@ export function WorkflowCard({ workflow, index = 0, onTryWorkflow, onLike, authT
           </div>
         </div>
       </Card>
+      
+      {/* 登录对话框 */}
+      <LoginDialog 
+        open={showLoginDialog} 
+        onOpenChange={setShowLoginDialog}
+        onSuccess={handleLoginSuccess}
+      />
     </div>
   )
 }

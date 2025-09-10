@@ -446,11 +446,11 @@ export default function WorkflowsTable() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-16 text-center">头像</TableHead>
-              <TableHead className="w-40">工作流名称</TableHead>
+              <TableHead className="pl-6 w-20 text-center">头像</TableHead>
+              <TableHead className="w-48">工作流名称</TableHead>
               <TableHead className="w-32">分类</TableHead>
-              <TableHead className="w-20 text-center">状态</TableHead>
-              <TableHead className="w-40">创建时间</TableHead>
+              <TableHead className="w-24 text-center">状态</TableHead>
+              <TableHead className="w-44">创建时间</TableHead>
               <TableHead className="w-32 text-center">操作</TableHead>
             </TableRow>
           </TableHeader>
@@ -464,7 +464,7 @@ export default function WorkflowsTable() {
             ) : (
               workflows.map((workflow) => (
                 <TableRow key={workflow.id}>
-                  <TableCell className="text-center">
+                  <TableCell className="pl-6 text-center">
                     <div className="flex justify-center">
                       {workflow.avatar ? (
                         <img 
@@ -497,7 +497,7 @@ export default function WorkflowsTable() {
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">{formatDate(workflow.created_at)}</TableCell>
                   <TableCell className="text-center">
-                    <div className="flex items-center gap-2">
+                    <div className="flex justify-center items-center gap-2">
 
                       <Button
                         variant="outline"

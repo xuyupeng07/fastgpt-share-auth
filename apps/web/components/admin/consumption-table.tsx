@@ -204,7 +204,7 @@ export function ConsumptionTable() {
                       </span>
                     </TableCell>
                     <TableCell className="text-center">
-                      <span className="font-mono text-purple-600 dark:text-purple-400 font-semibold">
+                      <span className="font-mono text-orange-600 dark:text-orange-400 font-semibold">
                         {(parseFloat(record.points_used) || 0).toFixed(4)}
                       </span>
                     </TableCell>

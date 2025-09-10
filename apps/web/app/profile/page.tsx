@@ -95,6 +95,7 @@ export default function ProfilePage() {
   // 获取最新用户信息
   const refreshUserInfo = async (token: string): Promise<UserInfo | null> => {
     try {
+      setLoading(true)
       const response = await fetch('/api/user/info', {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -137,6 +138,8 @@ export default function ProfilePage() {
     } catch (error) {
       console.error('刷新用户信息失败:', error)
       return null
+    } finally {
+      setLoading(false)
     }
     return null
   }
@@ -277,22 +280,22 @@ export default function ProfilePage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">用户名</p>
-                <p className="font-medium">{userInfo.username}</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="space-y-1">
+                <p className="text-base font-medium text-muted-foreground">用户名</p>
+                <p className="font-semibold text-lg">{userInfo.username}</p>
               </div>
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">用户ID</p>
-                <p className="font-medium text-xs">{userInfo.id}</p>
+              <div className="space-y-1">
+                <p className="text-base font-medium text-muted-foreground">用户ID</p>
+                <p className="font-medium text-sm">{userInfo.id}</p>
               </div>
 
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">当前余额</p>
-                <p className="font-medium text-lg text-primary">{parseFloat(userInfo.balance?.toString() || '0').toFixed(2)} 积分</p>
+              <div className="space-y-1">
+                <p className="text-base font-medium text-muted-foreground">当前余额</p>
+                <p className="font-bold text-xl text-primary">{parseFloat(userInfo.balance?.toString() || '0').toFixed(2)} 积分</p>
               </div>
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">账户状态</p>
+              <div className="space-y-1">
+                <p className="text-base font-medium text-muted-foreground">账户状态</p>
                 <div className="flex space-x-2">
                   {getStatusBadge(userInfo.status)}
                   {getRoleBadge(userInfo.role)}
@@ -336,24 +339,25 @@ export default function ProfilePage() {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="w-44">消费时间</TableHead>
+                          <TableHead className="pl-6 w-32">用户名</TableHead>
                           <TableHead className="w-32 text-center">Token使用</TableHead>
                           <TableHead className="w-32 text-center">积分消费</TableHead>
                           <TableHead className="w-32 text-center">消费金额</TableHead>
+                          <TableHead className="w-44">消费时间</TableHead>
                           <TableHead className="w-24 text-center">操作</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {consumptionRecords.map((record) => (
                           <TableRow key={record.id}>
-                            <TableCell className="text-sm text-muted-foreground">{formatDate(record.created_at)}</TableCell>
+                            <TableCell className="pl-6 font-medium">{record.username}</TableCell>
                             <TableCell className="text-center">
                               <span className="font-mono text-blue-600 dark:text-blue-400 font-semibold">
                                 {(record.token_used || 0).toLocaleString()}
                               </span>
                             </TableCell>
                             <TableCell className="text-center">
-                              <span className="font-mono text-purple-600 dark:text-purple-400 font-semibold">
+                              <span className="font-mono text-orange-600 dark:text-orange-400 font-semibold">
                                 {(parseFloat(record.points_used?.toString() || '0')).toFixed(4)}
                               </span>
                             </TableCell>
@@ -362,6 +366,7 @@ export default function ProfilePage() {
                                 ¥{parseFloat(record.cost?.toString() || '0').toFixed(4)}
                               </span>
                             </TableCell>
+                            <TableCell className="text-sm text-muted-foreground">{formatDate(record.created_at)}</TableCell>
                             <TableCell className="text-center">
                               <Dialog>
                                 <DialogTrigger asChild>
@@ -454,25 +459,20 @@ export default function ProfilePage() {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="w-44">充值时间</TableHead>
+                          <TableHead className="pl-6 w-32">用户名</TableHead>
                           <TableHead className="w-32 text-center">充值金额</TableHead>
-                          <TableHead className="w-32 text-center">充值前余额</TableHead>
                           <TableHead className="w-32 text-center">充值后余额</TableHead>
+                          <TableHead className="w-44">充值时间</TableHead>
                           <TableHead className="w-32">备注</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {rechargeRecords.map((record) => (
                           <TableRow key={record.id}>
-                            <TableCell className="text-sm text-muted-foreground">{formatDate(record.created_at)}</TableCell>
+                            <TableCell className="pl-6 font-medium">{record.username}</TableCell>
                             <TableCell className="text-center">
                               <span className="font-semibold text-green-600 dark:text-green-400">
                                 +¥{parseFloat(record.amount?.toString() || '0').toFixed(2)}
-                              </span>
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <span className="font-mono text-muted-foreground">
-                                ¥{parseFloat(record.balance_before?.toString() || '0').toFixed(2)}
                               </span>
                             </TableCell>
                             <TableCell className="text-center">
@@ -480,6 +480,7 @@ export default function ProfilePage() {
                                 ¥{parseFloat(record.balance_after?.toString() || '0').toFixed(2)}
                               </span>
                             </TableCell>
+                            <TableCell className="text-sm text-muted-foreground">{formatDate(record.created_at)}</TableCell>
                             <TableCell className="text-sm text-muted-foreground max-w-32 truncate" title={record.remark || '-'}>{record.remark || '-'}</TableCell>
                           </TableRow>
                         ))}

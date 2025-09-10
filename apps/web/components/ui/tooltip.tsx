@@ -8,7 +8,7 @@ interface TooltipProps {
   side?: "top" | "right" | "bottom" | "left"
   align?: "start" | "center" | "end"
   className?: string
-  anchorRef?: React.RefObject<HTMLElement>
+  anchorRef?: React.RefObject<HTMLElement | null>
   delayDuration?: number
 }
 
@@ -18,6 +18,7 @@ const Tooltip = ({
   side = "top", 
   align = "center", 
   className,
+  anchorRef,
   delayDuration = 200
 }: TooltipProps) => {
   const [isVisible, setIsVisible] = React.useState(false)
@@ -36,12 +37,37 @@ const Tooltip = ({
 
   const getPositionClasses = () => {
     const positions = {
-      top: "bottom-full left-1/2 transform -translate-x-1/2 mb-2",
-      bottom: "top-full left-1/2 transform -translate-x-1/2 mt-2",
-      left: "right-full top-1/2 transform -translate-y-1/2 mr-2",
-      right: "left-full top-1/2 transform -translate-y-1/2 ml-2"
+      top: "bottom-full mb-3",
+      bottom: "top-full mt-3",
+      left: "right-full top-1/2 transform -translate-y-1/2 mr-3",
+      right: "left-full top-1/2 transform -translate-y-1/2 ml-3"
     }
     return positions[side]
+  }
+
+  const getArrowClasses = () => {
+    if (anchorRef && anchorRef.current && (side === 'top' || side === 'bottom')) {
+      // 当有anchorRef时，计算尖刺相对于卡片中心的位置
+      const triggerRect = children && (children as any).ref?.current?.getBoundingClientRect()
+      const anchorRect = anchorRef.current.getBoundingClientRect()
+      
+      if (triggerRect && anchorRect) {
+        const offset = (anchorRect.left + anchorRect.width / 2) - (triggerRect.left + triggerRect.width / 2)
+        const arrows = {
+          top: `top-full -translate-x-1/2 -mt-1 border-l-[6px] border-r-[6px] border-t-[8px] border-l-transparent border-r-transparent border-t-white dark:border-t-black`,
+          bottom: `bottom-full -translate-x-1/2 -mb-1 border-l-[6px] border-r-[6px] border-b-[8px] border-l-transparent border-r-transparent border-b-white dark:border-b-black`
+        }
+        return arrows[side as 'top' | 'bottom']
+      }
+    }
+    
+    const arrows = {
+      top: "top-full left-1/2 -translate-x-1/2 -mt-1 border-l-[6px] border-r-[6px] border-t-[8px] border-l-transparent border-r-transparent border-t-white dark:border-t-black",
+      bottom: "bottom-full left-1/2 -translate-x-1/2 -mb-1 border-l-[6px] border-r-[6px] border-b-[8px] border-l-transparent border-r-transparent border-b-white dark:border-b-black",
+      left: "left-full top-1/2 -translate-y-1/2 -ml-1 border-t-[6px] border-b-[6px] border-l-[8px] border-t-transparent border-b-transparent border-l-white dark:border-l-black",
+      right: "right-full top-1/2 -translate-y-1/2 -mr-1 border-t-[6px] border-b-[6px] border-r-[8px] border-t-transparent border-b-transparent border-r-white dark:border-r-black"
+    }
+    return arrows[side]
   }
 
   return (
@@ -54,23 +80,28 @@ const Tooltip = ({
       {isVisible && (
         <div 
           className={cn(
-            "absolute z-[9999] px-3 py-2 text-sm rounded-md shadow-2xl pointer-events-none",
-            "bg-popover text-popover-foreground border border-border",
+            "absolute z-[99999] px-4 py-3 text-sm rounded-lg shadow-2xl pointer-events-none",
+            "bg-white dark:bg-black text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700",
             "w-max min-w-0 max-w-[320px]",
-            "animate-in fade-in-0 zoom-in-95 duration-200",
+            "animate-in fade-in-0 zoom-in-95 duration-300 ease-out",
             "whitespace-pre-wrap break-words leading-relaxed",
             getPositionClasses(),
             className
           )}
+          style={{ 
+            zIndex: 99999,
+            ...(side === 'top' || side === 'bottom') ? {
+              left: '50%',
+              transform: 'translateX(-50%)'
+            } : {}
+          }}
         >
           {content}
+          {/* 尖刺箭头 */}
           <div 
             className={cn(
-              "absolute w-2 h-2 bg-popover border-l border-t border-border transform rotate-45",
-              side === "top" && "top-full left-1/2 -translate-x-1/2 -mt-1",
-              side === "bottom" && "bottom-full left-1/2 -translate-x-1/2 -mb-1",
-              side === "left" && "left-full top-1/2 -translate-y-1/2 -ml-1",
-              side === "right" && "right-full top-1/2 -translate-y-1/2 -mr-1"
+              "absolute w-0 h-0",
+              getArrowClasses()
             )}
           />
         </div>

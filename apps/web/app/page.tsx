@@ -4,13 +4,15 @@ import { useEffect, useState, useMemo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@workspace/ui/components/card"
 import { Button } from "@workspace/ui/components/button"
 import { Input } from "@workspace/ui/components/input"
-import { ExternalLink, LogIn } from "lucide-react"
+import { Alert, AlertDescription } from "@workspace/ui/components/alert"
+import { ExternalLink, LogIn, Info } from "lucide-react"
 import { Header } from "@/components/Header"
 import { WorkflowGrid } from "@/components/WorkflowGrid"
 import { WorkflowCard } from "@/components/WorkflowCard"
 import { PartnersCompact } from "@/components/Partners"
 import { LoginDialog } from "@/components/auth/login-dialog"
 import { Workflow } from "@/lib/types"
+import Script from "next/script"
 
 interface LinkConfig {
   id: number
@@ -260,6 +262,49 @@ export default function HomePage() {
     }
   }, [])
 
+  // 动态加载FastGPT聊天机器人脚本
+  useEffect(() => {
+    const loadChatbot = () => {
+      // 检查是否已经加载过
+      if (document.getElementById('chatbot-iframe') || document.getElementById('fastgpt-chatbot-button')) {
+        return
+      }
+
+      // 先创建配置script元素
+      const configScript = document.createElement('script')
+      configScript.id = 'chatbot-iframe'
+      configScript.setAttribute('data-bot-src', 'https://cloud.fastgpt.io/chat/share?shareId=tmwK0bv7ew5luTjxVHylcbi3')
+      configScript.setAttribute('data-default-open', 'false')
+      configScript.setAttribute('data-drag', 'true')
+      configScript.setAttribute('data-open-icon', 'data:image/svg+xml;base64,PHN2ZyB0PSIxNjkwNTMyNzg1NjY0IiBjbGFzcz0iaWNvbiIgdmlld0JveD0iMCAwIDEwMjQgMTAyNCIgdmVyc2lvbj0iMS4xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHAtaWQ9IjQxMzIiIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIj48cGF0aCBkPSJNNTEyIDMyQzI0Ny4wNCAzMiAzMiAyMjQgMzIgNDY0QTQxMC4yNCA0MTAuMjQgMCAwIDAgMTcyLjQ4IDc2OEwxNjAgOTY1LjEyYTI1LjI4IDI1LjI4IDAgMCAwIDM5LjA0IDIyLjRsMTY4LTExMkE1MjguNjQgNTI4LjY0IDAgMCAwIDUxMiA4OTZjMjY0Ljk2IDAgNDgwLTE5MiA0ODAtNDMyUzc3Ni45NiAzMiA1MTIgMzJ6IG0yNDQuOCA0MTZsLTM2MS42IDMwMS43NmExMi40OCAxMi40OCAwIDAgMS0xOS44NC0xMi40OGw1OS4yLTIzMy45MmgtMTYwYTEyLjQ4IDEyLjQ4IDAgMCAxLTcuMzYtMjMuMzZsMzYxLjYtMzAxLjc2YTEyLjQ4IDEyLjQ4IDAgMCAxIDE5Ljg0IDEyLjQ4bC01OS4yIDIzMy45MmgxNjBhMTIuNDggMTIuNDggMCAwIDEgOCAyMi4wOHoiIGZpbGw9IiM0ZTgzZmQiIHAtaWQ9IjQxMzMiPjwvcGF0aD48L3N2Zz4=')
+      configScript.setAttribute('data-close-icon', 'data:image/svg+xml;base64,PHN2ZyB0PSIxNjkwNTM1NDQxNTI2IiBjbGFzcz0iaWNvbiIgdmlld0JveD0iMCAwIDEwMjQgMTAyNCIgdmVyc2lvbj0iMS4xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHAtaWQ9IjYzNjciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIj48cGF0aCBkPSJNNTEyIDEwMjRBNTEyIDUxMiAwIDEgMSA1MTIgMGE1MTIgNTEyIDAgMCAxIDAgMTAyNHpNMzA1Ljk1NjU3MSAzNzAuMzk1NDI5TDQ0Ny40ODggNTEyIDMwNS45NTY1NzEgNjUzLjYwNDU3MWE0NS41NjggNDUuNTY4IDAgMSAwIDY0LjQzODg1OCA2NC40Mzg4NThMNTEyIDU3Ni41MTJsMTQxLjYwNDU3MSAxNDEuNTMxNDI5YTQ1LjU2OCA0NS41NjggMCAwIDAgNjQuNDM4ODU4LTY0LjQzODg1OEw1NzYuNTEyIDUxMmwxNDEuNTMxNDI5LTE0MS42MDQ1NzFhNDUuNTY4IDQ1LjU2OCAwIDEgMC02NC40Mzg4NTgtNjQuNDM4ODU4TDUxMiA0NDcuNDg4IDM3MC4zOTU0MjkgMzA1Ljk1NjU3MWE0NS41NjggNDUuNTY4IDAgMCAwLTY0LjQzODg1OCA2NC40Mzg4NTh6IiBmaWxsPSIjNGU4M2ZkIiBwLWlkPSI2MzY4Ij48L3BhdGg+PC9zdmc+')
+      document.head.appendChild(configScript)
+      
+      // 然后加载功能脚本
+      const script = document.createElement('script')
+      script.src = '/chatbot.js'
+      
+      script.onload = () => {
+        console.log('FastGPT聊天机器人脚本已加载')
+      }
+      
+      script.onerror = (e) => {
+        console.error('FastGPT聊天机器人脚本加载失败:', e)
+      }
+      
+      // 添加到head中
+      document.head.appendChild(script)
+    }
+
+    // 确保DOM完全加载后再执行
+    if (document.readyState === 'complete') {
+      loadChatbot()
+    } else {
+      window.addEventListener('load', loadChatbot)
+      return () => window.removeEventListener('load', loadChatbot)
+    }
+  }, [])
+
   const handleLinkClick = (url: string) => {
     if (authToken) {
       const fastgptUrl = `${url}&authToken=${authToken}`
@@ -341,7 +386,7 @@ export default function HomePage() {
     className="group relative flex items-center justify-center px-3 py-2 sm:px-4 sm:py-2.5 md:px-6 md:py-3 lg:px-8 lg:py-3.5 transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer"
   >
     {/* 外层光环 - 呼吸效果 */}
-    <div className="absolute -inset-0.5 sm:-inset-1 md:-inset-1.5 bg-gradient-to-r from-blue-400/30 via-white/20 to-purple-400/30 rounded-lg sm:rounded-xl md:rounded-2xl blur-sm sm:blur-md animate-pulse opacity-60 group-hover:opacity-100 transition-all duration-500"></div>
+    <div className="absolute -inset-0.5 sm:-inset-1 md:-inset-1.5 bg-gradient-to-r from-blue-400/30 via-white/20 to-orange-400/30 rounded-lg sm:rounded-xl md:rounded-2xl blur-sm sm:blur-md animate-pulse opacity-60 group-hover:opacity-100 transition-all duration-500"></div>
     
     {/* 透明磨砂背景 */}
     <div className="absolute inset-0 backdrop-blur-xl sm:backdrop-blur-2xl rounded-lg sm:rounded-xl border border-white/20 group-hover:border-white/40 group-hover:bg-white/5 transition-all duration-300 overflow-hidden">
@@ -363,20 +408,23 @@ export default function HomePage() {
 </div>
           </div>
           {!userInfo && (
-            <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4 max-w-2xl mx-auto mb-8">
-              <p className="text-orange-600 dark:text-orange-400 text-sm">
-                💡 提示：需要登录后才能使用完整功能
-              </p>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleLogin}
-                className="mt-2"
-              >
-                <LogIn className="h-4 w-4 mr-2" />
-                立即登录
-              </Button>
-            </div>
+            <Alert variant="info" className="max-w-2xl mx-auto mb-8 shadow-lg border-2">
+              <Info className="h-5 w-5" />
+              <AlertDescription className="flex items-center justify-between">
+                <div className="flex-1">
+                  <p className="font-medium mb-2">解锁完整功能体验</p>
+                  <p className="text-sm opacity-90">登录后可享受个性化推荐、收藏工作流、查看使用记录等完整功能</p>
+                </div>
+                <Button 
+                  onClick={handleLogin}
+                  className="ml-4 shadow-md hover:shadow-lg transition-all duration-200"
+                  size="sm"
+                >
+                  <LogIn className="h-4 w-4 mr-2" />
+                  立即登录
+                </Button>
+              </AlertDescription>
+            </Alert>
           )}
         </div>
         
@@ -489,6 +537,11 @@ export default function HomePage() {
          onOpenChange={setShowLoginDialog}
          onSuccess={handleLoginSuccess}
        />
+       
+       {/* FastGPT聊天机器人脚本 - 使用useEffect动态加载 */}
+       {typeof window !== 'undefined' && (
+         <div id="chatbot-container" />
+       )}
     </div>
   )
 }
