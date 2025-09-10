@@ -1,18 +1,16 @@
 "use client"
 
-import { useEffect, useState, useMemo } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@workspace/ui/components/card"
+import { useEffect, useState, useMemo, useCallback } from "react"
 import { Button } from "@workspace/ui/components/button"
-import { Input } from "@workspace/ui/components/input"
 import { Alert, AlertDescription } from "@workspace/ui/components/alert"
-import { ExternalLink, LogIn, Info } from "lucide-react"
+import { LogIn, Info } from "lucide-react"
+import Image from "next/image"
 import { Header } from "@/components/Header"
-import { WorkflowGrid } from "@/components/WorkflowGrid"
 import { WorkflowCard } from "@/components/WorkflowCard"
 import { PartnersCompact } from "@/components/Partners"
 import { LoginDialog } from "@/components/auth/login-dialog"
 import { Workflow } from "@/lib/types"
-import Script from "next/script"
+import { AuthUtils } from "@/lib/auth"
 
 interface LinkConfig {
   id: number
@@ -29,10 +27,20 @@ interface Category {
   sort_order: number
 }
 
+interface UserInfo {
+  id: string
+  username: string
+  balance: string
+  role: string
+  email: string
+  status: string
+  is_admin: number
+}
+
 export default function HomePage() {
-  const [userInfo, setUserInfo] = useState<any>(null)
+  const [userInfo, setUserInfo] = useState<UserInfo | null>(null)
   const [authToken, setAuthToken] = useState<string | null>(null)
-  const [links, setLinks] = useState<LinkConfig[]>([])
+  // links removed as it is not used
   const [workflows, setWorkflows] = useState<Workflow[]>([])
   const [categories, setCategories] = useState<Category[]>([{ id: 'all', name: '全部', sort_order: 0 }])
   const [categoriesLoading, setCategoriesLoading] = useState(true)
@@ -42,33 +50,10 @@ export default function HomePage() {
   const [showLoginDialog, setShowLoginDialog] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
 
-  // 获取工作流链接配置
-  const fetchLinks = async () => {
-    try {
-      const response = await fetch('/api/workflows')
-      const result = await response.json()
-      
-      if (result.success) {
-        // 只显示启用且有no_login_url的工作流
-        const enabledWorkflows = result.data
-          .filter((workflow: any) => workflow.status === 'active' && workflow.no_login_url)
-          .map((workflow: any) => ({
-            id: workflow.id,
-            name: workflow.name,
-            url: workflow.no_login_url,
-            description: workflow.description
-          }))
-        setLinks(enabledWorkflows)
-      } else {
-        console.error('获取工作流配置失败:', result.message)
-      }
-    } catch (error) {
-      console.error('获取工作流配置失败:', error)
-    }
-  }
+  // fetchLinks function removed as it is not used
 
   // 获取工作流数据（从MongoDB数据库）
-  const fetchWorkflows = async () => {
+  const fetchWorkflows = useCallback(async () => {
     try {
       const response = await fetch('/api/workflows/cards')
       const result = await response.json()
@@ -85,7 +70,7 @@ export default function HomePage() {
       // 如果请求失败，设置空数组
       setWorkflows([])
     }
-  }
+  }, [])
 
   // 工作流操作处理函数
   const handleTryWorkflow = (workflow: Workflow) => {
@@ -104,9 +89,7 @@ export default function HomePage() {
     )
   }
 
-  const handleSearch = (query: string) => {
-    setSearchQuery(query)
-  }
+  // handleSearch function removed as it is not used
 
   // 过滤和排序工作流
   const filteredAndSortedWorkflows = useMemo(() => {
@@ -144,7 +127,7 @@ export default function HomePage() {
   }, [workflows, searchQuery, selectedCategory, sortBy])
 
   // 获取最新用户信息
-  const refreshUserInfo = async (token: string) => {
+  const refreshUserInfo = useCallback(async (token: string) => {
     try {
       const response = await fetch('/api/user/info', {
         headers: {
@@ -166,7 +149,7 @@ export default function HomePage() {
         sessionStorage.clear()
         // 清除cookie
         document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
-        window.location.href = '/login?disabled=true'
+        setShowLoginDialog(true)
         return
       } else if (response.status === 401) {
         // token无效，跳转到登录页
@@ -174,15 +157,15 @@ export default function HomePage() {
         localStorage.removeItem('userInfo')
         // 清除cookie
         document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
-        window.location.href = '/login'
+        setShowLoginDialog(true)
       }
     } catch (error) {
       console.error('获取最新用户信息失败:', error)
     }
-  }
+  }, [])
 
   // 获取分类数据
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
     try {
       setCategoriesLoading(true)
       const response = await fetch('/api/categories')
@@ -203,7 +186,7 @@ export default function HomePage() {
     } finally {
       setCategoriesLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
     let cleanup: (() => void) | null = null
@@ -236,8 +219,7 @@ export default function HomePage() {
           }
         }
         
-        // 获取工作流链接配置（无论是否登录都显示）
-        await fetchLinks()
+        // fetchLinks call removed as function is not used
         
         // 获取工作流数据
         await fetchWorkflows()
@@ -260,7 +242,7 @@ export default function HomePage() {
         cleanup()
       }
     }
-  }, [])
+  }, [refreshUserInfo, fetchWorkflows, fetchCategories])
 
   // 动态加载FastGPT聊天机器人脚本
   useEffect(() => {
@@ -305,21 +287,10 @@ export default function HomePage() {
     }
   }, [])
 
-  const handleLinkClick = (url: string) => {
-    if (authToken) {
-      const fastgptUrl = `${url}&authToken=${authToken}`
-      window.open(fastgptUrl, '_blank')
-    } else {
-      // 未登录时跳转到登录页
-      window.location.href = '/login'
-    }
-  }
+  // handleLinkClick function removed as it is not used
 
   const handleLogout = () => {
-    localStorage.removeItem("authToken")
-    localStorage.removeItem("userInfo")
-    // 清除cookie
-    document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+    AuthUtils.handleLogout()
     setUserInfo(null)
     setAuthToken(null)
   }
@@ -364,7 +335,6 @@ export default function HomePage() {
         userInfo={userInfo}
         onLogin={handleLogin}
         onLogout={handleLogout}
-        onRefreshUserInfo={() => authToken && refreshUserInfo(authToken)}
       />
       
       <div className="container mx-auto px-4 py-8">
@@ -373,9 +343,11 @@ export default function HomePage() {
         {/* 主要内容区域 */}
         <div className="text-center mb-12">
           <div className="mb-8 relative">
-            <img 
+            <Image 
               src="/headerImage.png" 
               alt="AI工作流智能体交易生态社区" 
+              width={1200}
+              height={600}
               className="w-full mx-auto rounded-lg shadow-lg"
             />
 <div className="absolute bottom-2 left-14 md:bottom-4 md:left-22 lg:bottom-6 lg:left-48">

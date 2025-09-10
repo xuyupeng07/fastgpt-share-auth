@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 
 interface UserInfo {
@@ -32,11 +32,7 @@ export function useAdminAuth() {
   
   const router = useRouter()
 
-  useEffect(() => {
-    checkAdminAuth()
-  }, [])
-
-  const checkAdminAuth = async () => {
+  const checkAdminAuth = useCallback(async () => {
     try {
       setAuthState(prev => ({ ...prev, isLoading: true, error: null }))
       
@@ -149,9 +145,13 @@ export function useAdminAuth() {
         error: error instanceof Error ? error.message : '权限验证失败'
       })
     }
-  }
+  }, [router])
 
-  const logout = () => {
+  useEffect(() => {
+    checkAdminAuth()
+  }, [checkAdminAuth])
+
+  const logout = useCallback(() => {
     localStorage.removeItem('authToken')
     localStorage.removeItem('userInfo')
     document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
@@ -163,7 +163,7 @@ export function useAdminAuth() {
       error: null
     })
     router.push('/login')
-  }
+  }, [router])
 
   return {
     ...authState,

@@ -63,7 +63,7 @@ export async function PUT(request: NextRequest) {
     console.error('修改邮箱API错误:', error);
     
     // 处理MongoDB重复键错误
-    if ((error as any).code === 11000) {
+    if ((error as unknown as { code: number }).code === 11000) {
       return NextResponse.json(
         { success: false, message: '该邮箱已被使用，请选择其他邮箱' },
         { status: 409 }

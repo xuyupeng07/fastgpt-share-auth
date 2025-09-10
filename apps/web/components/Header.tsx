@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
-import { User, LogOut, RefreshCw, LogIn, Search } from 'lucide-react'
+import { User, LogOut, LogIn, Search } from 'lucide-react'
 import { ThemeToggle } from './theme-toggle'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
@@ -19,7 +19,7 @@ interface HeaderProps {
   userInfo: UserInfo | null
   onLogin: () => void
   onLogout: () => void
-  onRefreshUserInfo: () => void
+  // onRefreshUserInfo removed as it is not used
 }
 
 export function Header({ 
@@ -27,8 +27,8 @@ export function Header({
   onSearchChange, 
   userInfo, 
   onLogin, 
-  onLogout, 
-  onRefreshUserInfo 
+  onLogout 
+  // onRefreshUserInfo removed as it is not used
 }: HeaderProps) {
   const [githubStars, setGithubStars] = useState<string>('25.7k')
   // 获取GitHub星数
@@ -61,9 +61,9 @@ export function Header({
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
-          {/* Logo和标题 */}
+          {/* Logo和标题 - 向右移动 */}
           <motion.div 
-            className="flex items-center gap-4 cursor-pointer group relative"
+            className="flex items-center gap-4 cursor-pointer group relative ml-8 lg:ml-16"
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ 

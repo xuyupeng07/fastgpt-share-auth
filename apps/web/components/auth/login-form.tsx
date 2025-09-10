@@ -1,27 +1,29 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useCallback } from "react"
 import { Button } from "@workspace/ui/components/button"
 import { Input } from "@workspace/ui/components/input"
 import { Label } from "@workspace/ui/components/label"
 import { AlertMessage } from "@/components/ui/alert-message"
+import { AuthUtils } from "@/lib/auth"
 
 interface LoginFormProps {
   onSuccess?: () => void
+  onRegisterClick?: () => void
 }
 
-export function LoginForm({ onSuccess }: LoginFormProps = {}) {
+export function LoginForm({ onSuccess, onRegisterClick }: LoginFormProps = {}) {
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [alert, setAlert] = useState<{ message: string; type: "error" | "success" } | null>(null)
 
-  const showAlert = (message: string, type: "error" | "success" = "error") => {
+  const showAlert = useCallback((message: string, type: "error" | "success" = "error") => {
     setAlert({ message, type })
     setTimeout(() => setAlert(null), 5000)
-  }
+  }, [])
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
     
     if (!username) {
@@ -52,12 +54,9 @@ export function LoginForm({ onSuccess }: LoginFormProps = {}) {
       
       if (data.success) {
         showAlert("登录成功！正在跳转...", "success")
-        // 存储token到localStorage
-        localStorage.setItem("authToken", data.data.token)
-        localStorage.setItem("userInfo", JSON.stringify(data.data))
         
-        // 设置cookie供中间件使用
-        document.cookie = `authToken=${data.data.token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`
+        // 使用统一的认证工具处理登录成功
+        AuthUtils.handleLoginSuccess(data.data.token, data.data.user)
         
         // 调用成功回调
         setTimeout(() => {
@@ -75,7 +74,7 @@ export function LoginForm({ onSuccess }: LoginFormProps = {}) {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [username, password, onSuccess, showAlert])
 
   return (
     <div className="space-y-6">
@@ -113,6 +112,27 @@ export function LoginForm({ onSuccess }: LoginFormProps = {}) {
         </Button>
       </form>
       
+      {/* 注册区域 */}
+      <div className="text-center">
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-background px-2 text-muted-foreground">或</span>
+          </div>
+        </div>
+        <div className="mt-4">
+          <Button 
+            type="button" 
+            variant="outline" 
+            className="w-full" 
+            onClick={onRegisterClick}
+          >
+            注册新账户
+          </Button>
+        </div>
+      </div>
 
     </div>
   )

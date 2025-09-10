@@ -1,8 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAllWorkflows } from '@/lib/db';
+import { ObjectId } from 'mongodb';
+
+interface Workflow {
+  _id?: ObjectId;
+  id?: string;
+  name: string;
+  description: string;
+  avatar?: string;
+  no_login_url?: string;
+  category_name?: string;
+  likeCount?: number;
+  usageCount?: number;
+}
 
 // 工作流卡片数据转换函数
-function transformWorkflowToCard(workflow: any) {
+function transformWorkflowToCard(workflow: Workflow) {
   return {
     id: workflow._id?.toString() || workflow.id?.toString(),
     name: workflow.name,

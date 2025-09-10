@@ -1,5 +1,15 @@
 import { NextResponse } from 'next/server'
 import { getAllConsumptionRecords } from '@/lib/db'
+import { ObjectId } from 'mongodb'
+
+interface ConsumptionRecord {
+  id: ObjectId
+  username: string
+  token_used: number
+  points_used: number
+  cost: number
+  created_at: Date
+}
 
 export async function GET(request: Request) {
   try {
@@ -11,17 +21,17 @@ export async function GET(request: Request) {
     
     const records = await getAllConsumptionRecords();
     // 强制类型断言以处理数据库查询结果
-    const recordsArray: any[] = records as any;
-    let filteredRecords: any[] = recordsArray || [];
+    const recordsArray: ConsumptionRecord[] = records as unknown as ConsumptionRecord[];
+    let filteredRecords: ConsumptionRecord[] = recordsArray || [];
     
     // 根据查询条件过滤记录
     if (id) {
       const recordId = parseInt(id);
       if (!isNaN(recordId)) {
-        filteredRecords = filteredRecords.filter((record: any) => record.id === recordId);
+        filteredRecords = filteredRecords.filter((record: ConsumptionRecord) => record.id.toString() === recordId.toString());
       }
     } else if (username) {
-      filteredRecords = filteredRecords.filter((record: any) => 
+      filteredRecords = filteredRecords.filter((record: ConsumptionRecord) => 
         record.username && record.username.toLowerCase().includes(username.toLowerCase())
       );
     }

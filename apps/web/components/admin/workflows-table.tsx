@@ -7,7 +7,8 @@ import { Label } from '@workspace/ui/components/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@workspace/ui/components/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@workspace/ui/components/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@workspace/ui/components/dialog';
-import { Plus, Edit, Trash2, ExternalLink, Check, X, Upload, Image } from 'lucide-react';
+import { Plus, Edit, Trash2, ExternalLink, Check, X, Upload, Image as ImageIcon } from 'lucide-react';
+import Image from 'next/image';
 
 // 工作流接口类型
 interface Workflow {
@@ -339,9 +340,11 @@ export default function WorkflowsTable() {
                   <div className="flex items-center gap-4">
                     {formData.avatar ? (
                       <div className="relative">
-                        <img 
+                        <Image 
                           src={formData.avatar} 
                           alt="头像预览"
+                          width={64}
+                          height={64}
                           className="w-16 h-16 rounded-lg object-contain border-2 border-gray-200"
                         />
                         <Button
@@ -356,7 +359,7 @@ export default function WorkflowsTable() {
                       </div>
                     ) : (
                       <div className="w-16 h-16 rounded-lg bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center">
-                        <Image className="w-6 h-6 text-gray-400" />
+                        <ImageIcon className="w-6 h-6 text-gray-400" />
                       </div>
                     )}
                     <div className="flex-1">
@@ -467,14 +470,16 @@ export default function WorkflowsTable() {
                   <TableCell className="pl-6 text-center">
                     <div className="flex justify-center">
                       {workflow.avatar ? (
-                        <img 
+                        <Image 
                           src={workflow.avatar} 
                           alt={workflow.name}
+                          width={32}
+                          height={32}
                           className="w-8 h-8 rounded-lg object-contain"
                         />
                       ) : (
                         <div className="w-8 h-8 rounded-lg bg-gray-200 flex items-center justify-center">
-                          <Image className="w-4 h-4 text-gray-400" />
+                          <ImageIcon className="w-4 h-4 text-gray-400" />
                         </div>
                       )}
                     </div>

@@ -1,6 +1,6 @@
 "use client"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card"
+// Card components removed as they are not used
 import { AdminTabs } from "@/components/admin/admin-tabs"
 import { StatsGrid } from "@/components/admin/stats-grid"
 import { ThemeToggle } from "@/components/theme-toggle"

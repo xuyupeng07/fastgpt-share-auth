@@ -85,7 +85,7 @@ export function WorkflowCard({ workflow, index = 0, onTryWorkflow, onLike, authT
   }
 
   return (
-    <div ref={cardRef} className="workflow-card w-full h-48 sm:h-52 lg:h-56 group relative">
+    <div ref={cardRef} className="workflow-card w-full h-48 sm:h-52 lg:h-56 group relative transform transition-all duration-300 ease-out hover:scale-105 hover:z-10">
       {workflow.isVip && (
         <div className="absolute top-3 right-0 z-10">
           <div className="relative bg-gradient-to-r from-amber-50 via-yellow-100 to-amber-50 text-amber-700 px-1.5 py-0 rounded-tl-lg rounded-bl-lg shadow-sm backdrop-blur-sm overflow-hidden group">
@@ -98,7 +98,7 @@ export function WorkflowCard({ workflow, index = 0, onTryWorkflow, onLike, authT
         </div>
       )}
       
-      <Card className="workflow-card h-full flex flex-col hover:shadow-xl hover:shadow-black/10 transition-all duration-300 ease-out border border-border bg-card rounded-xl overflow-visible p-1 sm:p-1.5 relative">
+      <Card className="workflow-card h-full flex flex-col hover:shadow-2xl hover:shadow-black/20 transition-all duration-300 ease-out border border-border bg-card rounded-xl overflow-visible p-1 sm:p-1.5 relative">
         {/* 主要内容区域 */}
         <div className="flex-1 px-3 sm:px-4 lg:px-5 pt-2 sm:pt-3 pb-12 sm:pb-14 overflow-visible">
           {/* 顶部区域：logo和基本信息 */}

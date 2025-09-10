@@ -1,14 +1,15 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@workspace/ui/components/card"
 import { Button } from "@workspace/ui/components/button"
 import { Badge } from "@workspace/ui/components/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui/components/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui/components/table"
-import { User, ArrowLeft, Calendar, CreditCard, Activity, Eye, RefreshCw } from "lucide-react"
+import { User, ArrowLeft, CreditCard, Activity, RefreshCw } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@workspace/ui/components/dialog"
+import { LoginDialog } from "@/components/auth/login-dialog"
 
 interface UserInfo {
   id: string // 添加MongoDB的_id字段
@@ -48,52 +49,14 @@ export default function ProfilePage() {
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null)
   const [authToken, setAuthToken] = useState<string | null>(null)
   const [consumptionRecords, setConsumptionRecords] = useState<ConsumptionRecord[]>([])
+  const [showLoginDialog, setShowLoginDialog] = useState(false)
   const [rechargeRecords, setRechargeRecords] = useState<RechargeRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedRecord, setSelectedRecord] = useState<ConsumptionRecord | null>(null)
   const [detailLoading, setDetailLoading] = useState<{[key: number]: boolean}>({})
 
-  useEffect(() => {
-    // 检查登录状态
-    const token = localStorage.getItem("authToken")
-    const user = localStorage.getItem("userInfo")
-    
-    if (!token || !user) {
-      // 未登录，跳转到登录页
-      window.location.href = "/login"
-      return
-    }
-    
-    const userInfo = JSON.parse(user)
-    
-    // 检查是否为管理员，如果是则重定向到admin后台
-    if (userInfo.is_admin === 1) {
-      window.location.href = "/admin"
-      return
-    }
-    
-    setAuthToken(token)
-    setUserInfo(userInfo)
-    
-    // 加载用户数据
-    loadUserData(token, userInfo)
-    
-    // 监听页面焦点事件，当页面重新获得焦点时刷新用户信息
-    const handleFocus = () => {
-      if (token) {
-        refreshUserInfo(token)
-      }
-    }
-    
-    window.addEventListener('focus', handleFocus)
-    
-    return () => {
-      window.removeEventListener('focus', handleFocus)
-    }
-  }, [])
-
   // 获取最新用户信息
-  const refreshUserInfo = async (token: string): Promise<UserInfo | null> => {
+  const refreshUserInfo = useCallback(async (token: string): Promise<UserInfo | null> => {
     try {
       setLoading(true)
       const response = await fetch('/api/user/info', {
@@ -123,7 +86,7 @@ export default function ProfilePage() {
         sessionStorage.clear()
         // 清除cookie
         document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
-        window.location.href = '/login?disabled=true'
+        setShowLoginDialog(true)
         return null
       } else if (response.status === 401) {
         // token无效，跳转到登录页
@@ -132,7 +95,7 @@ export default function ProfilePage() {
         sessionStorage.clear()
         // 清除cookie
         document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
-        window.location.href = "/login"
+        setShowLoginDialog(true)
         return null
       }
     } catch (error) {
@@ -142,9 +105,9 @@ export default function ProfilePage() {
       setLoading(false)
     }
     return null
-  }
+  }, [])
 
-  const loadUserData = async (token: string, currentUserInfo?: UserInfo) => {
+  const loadUserData = useCallback(async (token: string, currentUserInfo?: UserInfo) => {
     try {
       setLoading(true)
       
@@ -177,9 +140,9 @@ export default function ProfilePage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [refreshUserInfo])
 
-  const fetchRecordDetail = async (recordId: number) => {
+  const fetchRecordDetail = useCallback(async (recordId: number) => {
     setDetailLoading(prev => ({ ...prev, [recordId]: true }))
     try {
       const response = await fetch(`/api/consumption/detail/${recordId}`)
@@ -196,7 +159,7 @@ export default function ProfilePage() {
     } finally {
       setDetailLoading(prev => ({ ...prev, [recordId]: false }))
     }
-  }
+  }, [])
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString('zh-CN')
@@ -217,6 +180,46 @@ export default function ProfilePage() {
       <Badge variant="outline">普通用户</Badge>
     )
   }
+
+  // 在所有函数定义后添加useEffect
+  useEffect(() => {
+    // 检查登录状态
+    const token = localStorage.getItem("authToken")
+    const user = localStorage.getItem("userInfo")
+    
+    if (!token || !user) {
+      // 未登录，打开登录对话框
+      setShowLoginDialog(true)
+      return
+    }
+    
+    const userInfo = JSON.parse(user)
+    
+    // 检查是否为管理员，如果是则重定向到admin后台
+    if (userInfo.is_admin === 1) {
+      window.location.href = "/admin"
+      return
+    }
+    
+    setAuthToken(token)
+    setUserInfo(userInfo)
+    
+    // 加载用户数据
+    loadUserData(token, userInfo)
+    
+    // 监听页面焦点事件，当页面重新获得焦点时刷新用户信息
+    const handleFocus = () => {
+      if (token) {
+        refreshUserInfo(token)
+      }
+    }
+    
+    window.addEventListener('focus', handleFocus)
+    
+    return () => {
+      window.removeEventListener('focus', handleFocus)
+    }
+  }, [loadUserData, refreshUserInfo])
 
   if (!userInfo) {
     return (
@@ -510,6 +513,15 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
       </div>
+      
+      <LoginDialog 
+        open={showLoginDialog} 
+        onOpenChange={setShowLoginDialog}
+        onSuccess={() => {
+          setShowLoginDialog(false)
+          window.location.reload()
+        }}
+      />
     </div>
   )
 }

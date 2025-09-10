@@ -68,11 +68,143 @@ export function Partners({
   showCategories = true, 
   maxItems 
 }: PartnersProps) {
+  // 将所有Hooks移到组件顶层
+  const [isPaused, setIsPaused] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  
+  // 状态管理 - 使用CompanyScroll的稳定实现
+  const scrollSpeed = parseInt(process.env.NEXT_PUBLIC_CARROUSEL_SCROLL_SPEED_LEFT || '15');
+  const stateRef = useRef({
+    speed: scrollSpeed / 15,           // 滚动速度，减慢速度提升用户体验
+    isRunning: true,    // 是否运行
+    direction: 1,       // 1: 向右, -1: 向左（改为向右滚动）
+    position: 0,        // 当前位置
+    itemWidth: 200,     // 单个项目宽度
+    itemsCount: simplePartners.length, // 项目数量
+    totalWidth: 0,      // 总宽度(原始项目)
+    lastFrameTime: 0,   // 上一帧时间戳
+    isInitialized: false // 是否完成初始化
+  });
+  
+  // 渐进式创建合作伙伴项 - 避免一次性DOM操作过多
+  const createItemsProgressive = useCallback((index = 0) => {
+    const track = scrollRef.current;
+    if (!track) return;
+    
+    if (index >= simplePartners.length * 2) { // 原始项+复制项
+      // 所有项目创建完成后计算尺寸并开始动画
+      const firstItem = track.querySelector('.partner-item') as HTMLElement;
+       if (firstItem) {
+         stateRef.current.itemWidth = firstItem.offsetWidth + 32; // 包含margin
+        stateRef.current.totalWidth = stateRef.current.itemWidth * stateRef.current.itemsCount;
+        stateRef.current.isInitialized = true;
+      }
+      return;
+    }
+    
+    // 创建单个项目
+  const partner = simplePartners[index % simplePartners.length];
+  if (!partner) return;
+  
+  const item = document.createElement('div');
+  item.className = 'partner-item flex-shrink-0 flex items-center justify-center p-3 mx-4 rounded-lg';
+  item.innerHTML = `
+    <div class="w-24 h-12 relative">
+      <img
+        src="${partner.logo}"
+        alt="Partner ${partner.id}"
+        class="w-full h-full object-contain filter"
+        loading="lazy"
+      />
+    </div>
+  `;
+    track.appendChild(item);
+    
+    // 下一帧继续创建，避免阻塞主线程
+    requestAnimationFrame(() => createItemsProgressive(index + 1));
+  }, []);
+  
+  // 优化的动画循环
+  const animate = useCallback((timestamp: number) => {
+    const state = stateRef.current;
+    const track = scrollRef.current;
+    
+    // 未初始化完成不执行动画
+    if (!state.isInitialized || !track) {
+      requestAnimationFrame(animate);
+      return;
+    }
+    
+    // 计算时间差
+    if (state.lastFrameTime === 0) {
+      state.lastFrameTime = timestamp;
+    }
+    const deltaTime = timestamp - state.lastFrameTime;
+    state.lastFrameTime = timestamp;
+    
+    // 更新位置
+    if (state.isRunning && !isPaused) {
+      state.position += state.direction * state.speed * (deltaTime / 16.67); // 标准化到60fps
+      
+      // 边界检查和重置
+      if (state.position <= -state.totalWidth) {
+        state.position = 0;
+      } else if (state.position >= 0) {
+        state.position = -state.totalWidth;
+      }
+      
+      // 应用变换
+      track.style.transform = `translateX(${state.position}px)`;
+    }
+    
+    requestAnimationFrame(animate);
+  }, [isPaused]);
+  
+  // 入场动画检测
+  useEffect(() => {
+    if (variant !== 'compact') return;
+    
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (entry && entry.isIntersecting) {
+          setIsVisible(true);
+        }
+      },
+      { threshold: 0.1 }
+    );
+    
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+    
+    return () => observer.disconnect();
+  }, [variant]);
+  
+  // 初始化动画
+  useEffect(() => {
+    if (variant !== 'compact' || !isVisible) return;
+    
+    createItemsProgressive();
+    requestAnimationFrame(animate);
+  }, [variant, isVisible, createItemsProgressive, animate]);
+  
+  // 清理
+  useEffect(() => {
+    if (variant !== 'compact') return;
+    
+    return () => {
+      if (scrollRef.current) {
+        scrollRef.current.innerHTML = '';
+      }
+      stateRef.current.isInitialized = false;
+    };
+  }, [variant]);
+  
   const displayPartners = maxItems ? partners.slice(0, maxItems) : partners;
   const featuredPartners = partners.filter(p => p.featured);
-  
-  // Add this missing state declaration
-  const [isPaused, setIsPaused] = useState(false);
   
   // 重新排列顺序：让OpenAI在中间位置，Anthropic在其左边
   const reorderedPartners = [
@@ -84,166 +216,6 @@ export function Partners({
   const partnersToShow = variant === 'featured' ? featuredPartners : (variant === 'compact' ? reorderedPartners : displayPartners);
 
   if (variant === 'compact') {
-    const scrollRef = useRef<HTMLDivElement>(null);
-    const [isVisible, setIsVisible] = useState(false);
-    const containerRef = useRef<HTMLDivElement>(null);
-    
-    // 状态管理 - 使用CompanyScroll的稳定实现
-    // 从环境变量读取滚动速度
-    const scrollSpeed = parseInt(process.env.NEXT_PUBLIC_CARROUSEL_SCROLL_SPEED_LEFT || '15');
-    const stateRef = useRef({
-      speed: scrollSpeed / 15,           // 滚动速度，减慢速度提升用户体验
-      isRunning: true,    // 是否运行
-      direction: -1,      // 1: 向右, -1: 向左（改为向左滚动）
-      position: 0,        // 当前位置
-      itemWidth: 200,     // 单个项目宽度
-      itemsCount: simplePartners.length, // 项目数量
-      totalWidth: 0,      // 总宽度(原始项目)
-      lastFrameTime: 0,   // 上一帧时间戳
-      isInitialized: false // 是否完成初始化
-    });
-
-    // 入场动画检测
-    useEffect(() => {
-      const observer = new IntersectionObserver(
-        (entries) => {
-          const entry = entries[0];
-          if (entry && entry.isIntersecting) {
-            setIsVisible(true);
-          }
-        },
-        { threshold: 0.1 }
-      );
-
-      if (containerRef.current) {
-        observer.observe(containerRef.current);
-      }
-
-      return () => observer.disconnect();
-    }, []);
-
-    // 渐进式创建合作伙伴项 - 避免一次性DOM操作过多
-    const createItemsProgressive = useCallback((index = 0) => {
-      const track = scrollRef.current;
-      if (!track) return;
-      
-      if (index >= simplePartners.length * 2) { // 原始项+复制项
-        // 所有项目创建完成后计算尺寸并开始动画
-        const firstItem = track.querySelector('.partner-item') as HTMLElement;
-         if (firstItem) {
-           stateRef.current.itemWidth = firstItem.offsetWidth + 32; // 包含margin
-          stateRef.current.totalWidth = stateRef.current.itemWidth * stateRef.current.itemsCount;
-          stateRef.current.isInitialized = true;
-        }
-        return;
-      }
-      
-      // 创建单个项目
-    const partner = simplePartners[index % simplePartners.length];
-    if (!partner) return;
-    
-    const item = document.createElement('div');
-    item.className = 'partner-item flex-shrink-0 flex items-center justify-center p-3 mx-4 rounded-lg';
-    item.innerHTML = `
-      <div class="w-24 h-12 relative">
-        <img
-          src="${partner.logo}"
-          alt="Partner ${partner.id}"
-          class="w-full h-full object-contain filter"
-          loading="lazy"
-        />
-      </div>
-    `;
-      track.appendChild(item);
-      
-      // 下一帧继续创建，避免阻塞主线程
-      requestAnimationFrame(() => createItemsProgressive(index + 1));
-    }, []);
-
-    // 优化的动画循环
-    const animate = useCallback((timestamp: number) => {
-      const state = stateRef.current;
-      const track = scrollRef.current;
-      
-      // 未初始化完成不执行动画
-      if (!state.isInitialized || !track) {
-        requestAnimationFrame(animate);
-        return;
-      }
-      
-      // 计算时间差
-      if (!state.lastFrameTime) state.lastFrameTime = timestamp;
-      const deltaTime = timestamp - state.lastFrameTime;
-      const frameInterval = 16; // 约60fps
-      
-      if (deltaTime >= frameInterval) {
-        if (state.isRunning) {
-          // 计算移动距离
-          const moveDistance = (state.speed * deltaTime) / frameInterval;
-          state.position += state.direction * moveDistance;
-          
-          // 循环逻辑
-          if (state.position >= state.totalWidth) {
-            state.position -= state.totalWidth;
-          } else if (state.position <= 0) {
-            state.position += state.totalWidth;
-          }
-          
-          // 应用位置
-          track.style.transform = `translateX(-${state.position}px)`;
-        }
-        // 无论是否运行都要更新时间戳，避免暂停后恢复时跳跃
-        state.lastFrameTime = timestamp;
-      }
-      
-      requestAnimationFrame(animate);
-    }, []);
-
-    // 初始化和动画启动
-    useEffect(() => {
-      if (!isVisible || !scrollRef.current) return;
-      
-      // 清空容器
-      scrollRef.current.innerHTML = '';
-      stateRef.current.isInitialized = false;
-      stateRef.current.position = 0;
-      stateRef.current.lastFrameTime = 0;
-      
-      // 使用requestIdleCallback在浏览器空闲时开始创建
-      if ('requestIdleCallback' in window) {
-        requestIdleCallback(() => {
-          createItemsProgressive();
-          requestAnimationFrame(animate);
-        });
-      } else {
-        // 降级处理
-        setTimeout(() => {
-          createItemsProgressive();
-          requestAnimationFrame(animate);
-        }, 100);
-      }
-    }, [isVisible]);
-
-    // 窗口大小变化处理 - 使用CompanyScroll的稳定逻辑
-    useEffect(() => {
-      const handleResize = () => {
-        const state = stateRef.current;
-        const track = scrollRef.current;
-        if (!state.isInitialized || !track) return;
-        
-        const ratio = state.position / state.totalWidth;
-        // 清空并重新渐进式创建项目
-        track.innerHTML = '';
-        state.isInitialized = false;
-        createItemsProgressive();
-        // 恢复位置比例
-        state.position = ratio * state.totalWidth;
-      };
-      
-      window.addEventListener('resize', handleResize);
-      return () => window.removeEventListener('resize', handleResize);
-    }, []);
-
     // 鼠标悬停暂停功能
     const handleMouseEnter = () => {
       stateRef.current.isRunning = false;

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
+// Image import removed as it is not used
 
 // 公司数据
 const companies = [

@@ -58,6 +58,7 @@ export function generateSecureToken(
     username,
     shareId,
     permissions,
+    jti,
     iat: Math.floor(Date.now() / 1000)
   };
   
@@ -241,7 +242,7 @@ export function cleanupRateLimit(): void {
 export function getTokenInfo(token: string): TokenPayload | null {
   try {
     return jwt.decode(token) as TokenPayload;
-  } catch (error) {
+  } catch (_error) {
     return null;
   }
 }
@@ -264,7 +265,7 @@ export function isTokenExpiringSoon(
     const threshold = thresholdMinutes * 60;
     
     return (decoded.exp - now) <= threshold;
-  } catch (error) {
+  } catch (_error) {
     return true;
   }
 }

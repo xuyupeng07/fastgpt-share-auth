@@ -118,11 +118,11 @@ export async function POST(request: NextRequest) {
 
     const newCategory = await createWorkflowCategory(categoryData);
     return NextResponse.json(newCategory, { status: 201 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('创建分类失败:', error);
     
     // 处理重复名称错误
-    if (error.code === 11000) {
+    if (error && typeof error === 'object' && 'code' in error && (error as any).code === 11000) {
       return NextResponse.json(
         { error: '分类名称已存在' },
         { status: 400 }
@@ -182,11 +182,11 @@ export async function PUT(request: NextRequest) {
     }
 
     return NextResponse.json(updatedCategory);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('更新分类失败:', error);
     
     // 处理重复名称错误
-    if (error.code === 11000) {
+    if (error && typeof error === 'object' && 'code' in error && error.code === 11000) {
       return NextResponse.json(
         { error: '分类名称已存在' },
         { status: 400 }

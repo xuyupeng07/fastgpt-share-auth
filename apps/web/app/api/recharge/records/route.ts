@@ -1,5 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAllRechargeRecords, getRechargeRecordsByUsername } from '@/lib/db'
+import { ObjectId } from 'mongodb'
+
+interface RechargeRecord {
+  id: ObjectId
+  username: string
+  amount: number
+  points: number
+  created_at: Date
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,17 +28,17 @@ export async function GET(request: NextRequest) {
     }
     
     // 类型断言以处理数据库查询结果
-    const recordsArray = (records as any[]) || []
+    const recordsArray = (records as unknown as RechargeRecord[]) || []
     let filteredRecords = recordsArray
     
     // 根据查询条件过滤记录
     if (id) {
       const recordId = parseInt(id)
       if (!isNaN(recordId)) {
-        filteredRecords = recordsArray.filter((record: any) => record.id === recordId)
+        filteredRecords = recordsArray.filter((record: RechargeRecord) => record.id.toString() === recordId.toString())
       }
     } else if (username) {
-      filteredRecords = recordsArray.filter((record: any) => 
+      filteredRecords = recordsArray.filter((record: RechargeRecord) => 
         record.username && record.username.toLowerCase().includes(username.toLowerCase())
       )
     }

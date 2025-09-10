@@ -69,12 +69,13 @@ export async function POST(request: NextRequest) {
         created_at: newUser.created_at
       }
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('创建用户失败:', error)
     
     // 处理重复用户名或邮箱错误
-    if (error.code === 11000) {
-      const field = error.keyPattern?.username ? '用户名' : '邮箱'
+    const mongoError = error as { code?: number; keyPattern?: { username?: boolean } }
+    if (mongoError.code === 11000) {
+      const field = mongoError.keyPattern?.username ? '用户名' : '邮箱'
       return NextResponse.json({ error: `${field}已存在` }, { status: 400 })
     }
     
