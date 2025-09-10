@@ -280,27 +280,44 @@ export default function ProfilePage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-              <div className="space-y-1">
-                <p className="text-base font-medium text-muted-foreground">用户名</p>
-                <p className="font-semibold text-lg">{userInfo.username}</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-base font-medium text-muted-foreground">用户ID</p>
-                <p className="font-medium text-sm">{userInfo.id}</p>
-              </div>
-
-              <div className="space-y-1">
-                <p className="text-base font-medium text-muted-foreground">当前余额</p>
-                <p className="font-bold text-xl text-primary">{parseFloat(userInfo.balance?.toString() || '0').toFixed(2)} 积分</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-base font-medium text-muted-foreground">账户状态</p>
-                <div className="flex space-x-2">
+            {/* 简约紧凑布局 */}
+            <div className="space-y-3">
+              {/* 用户信息网格 */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="bg-card border rounded-lg p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    <p className="text-sm font-medium text-muted-foreground">用户名</p>
+                  </div>
+                  <p className="font-semibold">{userInfo.username}</p>
+                </div>
+                
+                <div className="bg-card border rounded-lg p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <CreditCard className="h-4 w-4 text-muted-foreground" />
+                    <p className="text-sm font-medium text-muted-foreground">当前余额</p>
+                  </div>
+                  <p className="font-bold text-lg">{parseFloat(userInfo.balance?.toString() || '0').toFixed(2)} 积分</p>
+                </div>
+                
+                <div className="bg-card border rounded-lg p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Activity className="h-4 w-4 text-muted-foreground" />
+                    <p className="text-sm font-medium text-muted-foreground">账户状态</p>
+                  </div>
                   {getStatusBadge(userInfo.status)}
+                </div>
+                
+                <div className="bg-card border rounded-lg p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    <p className="text-sm font-medium text-muted-foreground">用户角色</p>
+                  </div>
                   {getRoleBadge(userInfo.role)}
                 </div>
               </div>
+              
+
             </div>
           </CardContent>
         </Card>

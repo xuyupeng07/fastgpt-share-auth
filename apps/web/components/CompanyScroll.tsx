@@ -225,5 +225,5 @@ export function CompanyScroll({
 }
 
 // 导出不同方向的滚动组件
-export const CompanyScrollRight = () => <CompanyScroll direction="right" speed={20} />;
-export const CompanyScrollLeft = () => <CompanyScroll direction="left" speed={25} />;
+export const CompanyScrollRight = () => <CompanyScroll direction="right" speed={15} />;
+export const CompanyScrollLeft = () => <CompanyScroll direction="left" speed={18} />;

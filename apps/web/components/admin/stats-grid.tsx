@@ -47,15 +47,15 @@ export function StatsGrid() {
 
   if (loading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
         {[1, 2, 3, 4].map((i) => (
-          <Card key={i}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">加载中...</CardTitle>
+          <Card key={i} className="p-3 md:p-6">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2 p-0">
+              <CardTitle className="text-xs md:text-sm font-medium">加载中...</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">--</div>
-              <p className="text-xs text-muted-foreground">数据加载中</p>
+            <CardContent className="p-0 pt-1 md:pt-2">
+              <div className="text-lg md:text-2xl font-bold">--</div>
+              <p className="text-xs text-muted-foreground hidden md:block">数据加载中</p>
             </CardContent>
           </Card>
         ))}
@@ -64,18 +64,18 @@ export function StatsGrid() {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
       {statsCards.map((card, index) => (
-        <Card key={index}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{card.title}</CardTitle>
+        <Card key={index} className="p-3 md:p-6">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2 p-0">
+            <CardTitle className="text-xs md:text-sm font-medium">{card.title}</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
+          <CardContent className="p-0 pt-1 md:pt-2">
+            <div className="text-lg md:text-2xl font-bold">
               {typeof card.value === 'number' ? card.value.toLocaleString() : card.value}
-              <span className="text-sm font-normal ml-1">{card.suffix}</span>
+              <span className="text-xs md:text-sm font-normal ml-1">{card.suffix}</span>
             </div>
-            <p className="text-xs text-muted-foreground">{card.description}</p>
+            <p className="text-xs text-muted-foreground hidden md:block">{card.description}</p>
           </CardContent>
         </Card>
       ))}

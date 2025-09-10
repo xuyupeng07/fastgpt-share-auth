@@ -8,7 +8,55 @@ export interface Partner {
   featured: boolean;
 }
 
-// 合作伙伴数据
+// 简化的合作伙伴接口，用于轮播图显示
+export interface SimplePartner {
+  id: string;
+  logo: string;
+}
+
+// 简化的合作伙伴数据，用于轮播图显示
+export const simplePartners: SimplePartner[] = [
+  { id: '1', logo: '/logos/openai-logo.svg' },
+  { id: '2', logo: '/logos/anthropic.svg' },
+  { id: '3', logo: '/logos/claude-color.svg' },
+  { id: '4', logo: '/logos/gemini-color.svg' },
+  { id: '5', logo: '/logos/deepseek-color.svg' },
+  { id: '6', logo: '/logos/doubao-color.svg' },
+  { id: '7', logo: '/logos/kimi-color.svg' },
+  { id: '8', logo: '/logos/moonshot.svg' },
+  { id: '9', logo: '/logos/zhipu-color.svg' },
+  { id: '10', logo: '/logos/hunyuan-color.svg' },
+  { id: '11', logo: '/logos/minimax-color.svg' },
+  { id: '12', logo: '/logos/siliconcloud-color.svg' },
+  { id: '13', logo: '/logos/qwen-color.svg' },
+  { id: '14', logo: '/logos/wenxin-color.svg' },
+  { id: '15', logo: '/logos/grok.svg' },
+  { id: '16', logo: '/logos/internlm.svg' },
+  { id: '17', logo: '/logos/baai.svg' },
+  { id: '18', logo: '/logos/kling-color.svg' },
+  { id: '19', logo: '/logos/flux.svg' },
+  { id: '20', logo: '/logos/stability-color.svg' },
+  { id: '21', logo: '/logos/ollama.svg' },
+  { id: '22', logo: '/logos/xinference-color.svg' },
+  { id: '23', logo: '/logos/mcp.svg' },
+  { id: '24', logo: '/logos/jina.svg' },
+  { id: '25', logo: '/logos/searchapi.svg' },
+  { id: '26', logo: '/logos/doc2x-color.svg' },
+  { id: '27', logo: '/logos/bocha.png' },
+  { id: '28', logo: '/logos/alibabacloud-color.svg' },
+  { id: '29', logo: '/logos/tencentcloud-color.svg' },
+  { id: '30', logo: '/logos/MongoDB.svg' },
+  { id: '31', logo: '/logos/MySQL.svg' },
+  { id: '32', logo: '/logos/OceanBase.svg' },
+  { id: '33', logo: '/logos/redis.svg' },
+  { id: '34', logo: '/logos/github.svg' },
+  { id: '35', logo: '/logos/arxiv_.png' },
+  { id: '36', logo: '/logos/飞书.svg' },
+  { id: '37', logo: '/logos/钉钉.svg' },
+  { id: '38', logo: '/logos/企业微信.svg' }
+];
+
+// 完整的合作伙伴数据
 export const partners: Partner[] = [
   // AI模型提供商
   {

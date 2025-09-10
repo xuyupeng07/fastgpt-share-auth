@@ -5,6 +5,48 @@ import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { ExternalLink, Users, Award, Zap } from 'lucide-react';
 import { partners, categoryIcons, categoryLabels, type Partner } from '@/data/partners';
+
+// 简化的合作伙伴数据，直接嵌入组件中
+const simplePartners = [
+  { id: '1', logo: '/logos/openai-logo.svg' },
+  { id: '2', logo: '/logos/anthropic.svg' },
+  { id: '3', logo: '/logos/claude-color.svg' },
+  { id: '4', logo: '/logos/gemini-color.svg' },
+  { id: '5', logo: '/logos/deepseek-color.svg' },
+  { id: '6', logo: '/logos/doubao-color.svg' },
+  { id: '7', logo: '/logos/kimi-color.svg' },
+  { id: '8', logo: '/logos/moonshot.svg' },
+  { id: '9', logo: '/logos/zhipu-color.svg' },
+  { id: '10', logo: '/logos/hunyuan-color.svg' },
+  { id: '11', logo: '/logos/minimax-color.svg' },
+  { id: '12', logo: '/logos/siliconcloud-color.svg' },
+  { id: '13', logo: '/logos/qwen-color.svg' },
+  { id: '14', logo: '/logos/wenxin-color.svg' },
+  { id: '15', logo: '/logos/grok.svg' },
+  { id: '16', logo: '/logos/internlm.svg' },
+  { id: '17', logo: '/logos/baai.svg' },
+  { id: '18', logo: '/logos/kling-color.svg' },
+  { id: '19', logo: '/logos/flux.svg' },
+  { id: '20', logo: '/logos/stability-color.svg' },
+  { id: '21', logo: '/logos/ollama.svg' },
+  { id: '22', logo: '/logos/xinference-color.svg' },
+  { id: '23', logo: '/logos/mcp.svg' },
+  { id: '24', logo: '/logos/jina.svg' },
+  { id: '25', logo: '/logos/searchapi.svg' },
+  { id: '26', logo: '/logos/doc2x-color.svg' },
+  { id: '27', logo: '/logos/bocha.png' },
+  { id: '28', logo: '/logos/alibabacloud-color.svg' },
+  { id: '29', logo: '/logos/tencentcloud-color.svg' },
+  { id: '30', logo: '/logos/MongoDB.svg' },
+  { id: '31', logo: '/logos/MySQL.svg' },
+  { id: '32', logo: '/logos/OceanBase.svg' },
+  { id: '33', logo: '/logos/redis.svg' },
+  { id: '34', logo: '/logos/github.svg' },
+  { id: '35', logo: '/logos/arxiv_.png' },
+  { id: '36', logo: '/logos/飞书.svg' },
+  { id: '37', logo: '/logos/钉钉.svg' },
+  { id: '38', logo: '/logos/企业微信.svg' }
+];
 import { CompanyScrollRight, CompanyScrollLeft } from './CompanyScroll';
 
 // 图标映射
@@ -46,20 +88,20 @@ export function Partners({
     const [isVisible, setIsVisible] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
     
-    // 状态管理 - 参考test.md的优化实现
+    // 状态管理 - 使用CompanyScroll的稳定实现
     // 从环境变量读取滚动速度
-    const scrollSpeed = parseInt(process.env.NEXT_PUBLIC_CARROUSEL_SCROLL_SPEED_LEFT || '20');
-  const stateRef = useRef({
-     speed: scrollSpeed / 10,           // 滚动速度，从环境变量读取并除以10适配动画帧率
-     isRunning: true,    // 是否运行
-     direction: -1,      // 1: 向右, -1: 向左（改为向左滚动）
-     position: 0,        // 当前位置
-     itemWidth: 200,     // 单个项目宽度
-     itemsCount: partnersToShow.length, // 项目数量
-     totalWidth: 0,      // 总宽度(原始项目)
-     lastFrameTime: 0,   // 上一帧时间戳
-     isInitialized: false // 是否完成初始化
-   });
+    const scrollSpeed = parseInt(process.env.NEXT_PUBLIC_CARROUSEL_SCROLL_SPEED_LEFT || '15');
+    const stateRef = useRef({
+      speed: scrollSpeed / 15,           // 滚动速度，减慢速度提升用户体验
+      isRunning: true,    // 是否运行
+      direction: -1,      // 1: 向右, -1: 向左（改为向左滚动）
+      position: 0,        // 当前位置
+      itemWidth: 200,     // 单个项目宽度
+      itemsCount: simplePartners.length, // 项目数量
+      totalWidth: 0,      // 总宽度(原始项目)
+      lastFrameTime: 0,   // 上一帧时间戳
+      isInitialized: false // 是否完成初始化
+    });
 
     // 入场动画检测
     useEffect(() => {
@@ -85,7 +127,7 @@ export function Partners({
       const track = scrollRef.current;
       if (!track) return;
       
-      if (index >= partnersToShow.length * 2) { // 原始项+复制项
+      if (index >= simplePartners.length * 2) { // 原始项+复制项
         // 所有项目创建完成后计算尺寸并开始动画
         const firstItem = track.querySelector('.partner-item') as HTMLElement;
          if (firstItem) {
@@ -97,7 +139,7 @@ export function Partners({
       }
       
       // 创建单个项目
-    const partner = partnersToShow[index % partnersToShow.length];
+    const partner = simplePartners[index % simplePartners.length];
     if (!partner) return;
     
     const item = document.createElement('div');
@@ -106,7 +148,7 @@ export function Partners({
       <div class="w-24 h-12 relative">
         <img
           src="${partner.logo}"
-          alt="${partner.name}"
+          alt="Partner ${partner.id}"
           class="w-full h-full object-contain filter"
           loading="lazy"
         />
@@ -116,7 +158,7 @@ export function Partners({
       
       // 下一帧继续创建，避免阻塞主线程
       requestAnimationFrame(() => createItemsProgressive(index + 1));
-    }, [partnersToShow]);
+    }, []);
 
     // 优化的动画循环
     const animate = useCallback((timestamp: number) => {
@@ -180,9 +222,9 @@ export function Partners({
           requestAnimationFrame(animate);
         }, 100);
       }
-    }, [isVisible, createItemsProgressive, animate]);
+    }, [isVisible]);
 
-    // 窗口大小变化处理
+    // 窗口大小变化处理 - 使用CompanyScroll的稳定逻辑
     useEffect(() => {
       const handleResize = () => {
         const state = stateRef.current;
@@ -200,7 +242,7 @@ export function Partners({
       
       window.addEventListener('resize', handleResize);
       return () => window.removeEventListener('resize', handleResize);
-    }, [createItemsProgressive]);
+    }, []);
 
     // 鼠标悬停暂停功能
     const handleMouseEnter = () => {

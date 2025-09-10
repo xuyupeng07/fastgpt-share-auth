@@ -13,25 +13,25 @@ export function AdminTabs() {
   return (
     <Tabs defaultValue="workflows" className="w-full">
       <TabsList className="grid w-full grid-cols-5">
-        <TabsTrigger value="workflows" className="flex items-center space-x-2">
+        <TabsTrigger value="workflows" className="flex items-center justify-center space-x-2">
           <Workflow className="h-4 w-4" />
-          <span>工作流管理</span>
+          <span className="hidden sm:inline">工作流管理</span>
         </TabsTrigger>
-        <TabsTrigger value="categories" className="flex items-center space-x-2">
+        <TabsTrigger value="categories" className="flex items-center justify-center space-x-2">
           <FolderTree className="h-4 w-4" />
-          <span>分类管理</span>
+          <span className="hidden sm:inline">分类管理</span>
         </TabsTrigger>
-        <TabsTrigger value="users" className="flex items-center space-x-2">
+        <TabsTrigger value="users" className="flex items-center justify-center space-x-2">
           <Users className="h-4 w-4" />
-          <span>用户管理</span>
+          <span className="hidden sm:inline">用户管理</span>
         </TabsTrigger>
-        <TabsTrigger value="consumption" className="flex items-center space-x-2">
+        <TabsTrigger value="consumption" className="flex items-center justify-center space-x-2">
           <Activity className="h-4 w-4" />
-          <span>消费记录</span>
+          <span className="hidden sm:inline">消费记录</span>
         </TabsTrigger>
-        <TabsTrigger value="recharge" className="flex items-center space-x-2">
+        <TabsTrigger value="recharge" className="flex items-center justify-center space-x-2">
           <CreditCard className="h-4 w-4" />
-          <span>充值记录</span>
+          <span className="hidden sm:inline">充值记录</span>
         </TabsTrigger>
       </TabsList>
       

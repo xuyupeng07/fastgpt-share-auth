@@ -383,7 +383,7 @@ export default function HomePage() {
     href="https://fastgpt.cn/zh" 
     target="_blank" 
     rel="noopener noreferrer"
-    className="group relative flex items-center justify-center px-3 py-2 sm:px-4 sm:py-2.5 md:px-6 md:py-3 lg:px-8 lg:py-3.5 transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer"
+    className="group relative flex items-center justify-center px-2 py-1.5 sm:px-4 sm:py-2.5 md:px-6 md:py-3 lg:px-8 lg:py-3.5 transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer"
   >
     {/* 外层光环 - 呼吸效果 */}
     <div className="absolute -inset-0.5 sm:-inset-1 md:-inset-1.5 bg-gradient-to-r from-blue-400/30 via-white/20 to-orange-400/30 rounded-lg sm:rounded-xl md:rounded-2xl blur-sm sm:blur-md animate-pulse opacity-60 group-hover:opacity-100 transition-all duration-500"></div>
@@ -398,7 +398,7 @@ export default function HomePage() {
     <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent rounded-lg sm:rounded-xl group-hover:from-white/20 transition-all duration-300"></div>
     
     {/* 文字 */}
-    <span className="relative text-white group-hover:text-white text-xs sm:text-sm md:text-base lg:text-lg font-bold tracking-[0.1em] sm:tracking-[0.15em] transition-all duration-300 drop-shadow-lg">
+    <span className="relative text-white group-hover:text-white text-xs sm:text-sm md:text-base lg:text-lg font-bold tracking-[0.05em] sm:tracking-[0.15em] transition-all duration-300 drop-shadow-lg">
       免费使用
     </span>
     
