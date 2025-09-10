@@ -1,10 +1,10 @@
 import mongoose from 'mongoose';
 
 // MongoDB连接配置
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://root:hpt6pq6r@dbconn.sealoshzh.site:39853/exchange?directConnection=true&authSource=admin';
+const MONGODB_URI = process.env.MONGODB_URI;
 
 if (!MONGODB_URI) {
-  throw new Error('请在环境变量中设置MONGODB_URI');
+  throw new Error('Please define the MONGODB_URI environment variable inside .env.local');
 }
 
 // 全局缓存连接
@@ -28,7 +28,7 @@ async function connectDB() {
       family: 4, // 使用IPv4
     };
 
-    cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
+    cached.promise = mongoose.connect(MONGODB_URI as string, opts).then((mongoose) => {
       console.log('MongoDB连接成功');
       return mongoose;
     }).catch((error) => {
