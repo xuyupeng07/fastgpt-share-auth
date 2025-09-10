@@ -5,7 +5,19 @@
     "build": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": [".next/**", "!.next/cache/**"]
+      "outputs": [".next/**", "!.next/cache/**"],
+      "env": [
+        "JWT_SECRET",
+        "JWT_ISSUER",
+        "JWT_AUDIENCE",
+        "JWT_EXPIRES_IN",
+        "MONGODB_URI",
+        "NEXT_PUBLIC_API_URL",
+        "NODE_ENV",
+        "RATE_LIMIT_MAX_REQUESTS",
+        "RATE_LIMIT_WINDOW_MS",
+        "RATE_LIMIT_CLEANUP_INTERVAL"
+      ]
     },
     "lint": {
       "dependsOn": ["^lint"]

@@ -1,15 +1,16 @@
 import { getUserById } from '@/lib/db';
 
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { email } = await request.json();
+    const { id } = await params;
     
     if (!email || !email.includes('@')) {
       return Response.json({ error: '请输入有效的邮箱地址' }, { status: 400 });
     }
 
     // 检查用户是否存在
-    const user = await getUserById(params.id);
+    const user = await getUserById(id);
     if (!user) {
       return Response.json({ error: '用户不存在' }, { status: 404 });
     }
