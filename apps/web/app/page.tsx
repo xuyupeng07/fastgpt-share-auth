@@ -35,6 +35,7 @@ interface UserInfo {
   email: string
   status: string
   is_admin: boolean
+  avatar?: string
   disabled?: boolean
 }
 
@@ -345,6 +346,12 @@ export default function HomePage() {
         userInfo={userInfo}
         onLogin={handleLogin}
         onLogout={handleLogout}
+        onRefreshUserInfo={() => {
+          const token = localStorage.getItem('authToken')
+          if (token) {
+            refreshUserInfo(token)
+          }
+        }}
       />
       
       <div className="container mx-auto px-4 py-8">

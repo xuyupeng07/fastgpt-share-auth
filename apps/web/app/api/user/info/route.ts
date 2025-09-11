@@ -57,7 +57,8 @@ export async function GET(request: NextRequest) {
         role: user.is_admin ? 'admin' : 'user',
         email: user.email,
         status: user.status,
-        is_admin: user.is_admin
+        is_admin: user.is_admin,
+        avatar: user.avatar || null // 包含头像数据
       }
     });
   } catch (error) {

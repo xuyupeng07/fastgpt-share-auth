@@ -3,16 +3,19 @@
 import React, { useState, useEffect } from 'react'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
-import { User, LogOut, LogIn, Search, Settings, Home } from 'lucide-react'
-import { ThemeToggle } from './theme-toggle'
+import { LogIn, Search } from 'lucide-react'
+
 import { Tooltip } from './ui/tooltip'
+import { UserDropdown } from './UserDropdown'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
 
 interface UserInfo {
+  id: string
   username: string
   balance: number
   is_admin?: boolean
+  avatar?: string
 }
 
 interface HeaderProps {
@@ -21,7 +24,7 @@ interface HeaderProps {
   userInfo: UserInfo | null
   onLogin: () => void
   onLogout: () => void
-  // onRefreshUserInfo removed as it is not used
+  onRefreshUserInfo?: () => void
 }
 
 export function Header({ 
@@ -29,8 +32,8 @@ export function Header({
   onSearchChange, 
   userInfo, 
   onLogin, 
-  onLogout 
-  // onRefreshUserInfo removed as it is not used
+  onLogout,
+  onRefreshUserInfo
 }: HeaderProps) {
   const [githubStars, setGithubStars] = useState<string>('25.7k')
   // 获取GitHub星数
@@ -152,22 +155,6 @@ export function Header({
 
           {/* 右侧按钮组 */}
           <div className="flex items-center gap-3">
-            {/* 用户信息 */}
-            {userInfo && (
-              <div className="hidden md:flex items-center gap-3">
-                <div className="text-base">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-foreground text-lg">
-                      Welcome, {userInfo.username}
-                    </span>
-                  </div>
-                  <div className="text-sm font-medium text-primary">
-                    积分余额: {(userInfo.balance || 0).toFixed(2)} Credits
-                  </div>
-                </div>
-              </div>
-            )}
-
             {/* GitHub星数 */}
             <a
               href="https://github.com/labring/FastGPT"
@@ -181,52 +168,28 @@ export function Header({
               <span className="font-semibold text-lg text-foreground group-hover:text-primary transition-colors">{githubStars}</span>
             </a>
 
-            {/* 用户操作按钮 */}
+            {/* 用户信息和操作 */}
             {userInfo ? (
-              <div className="flex items-center gap-2">
-                <Tooltip content="个人中心" side="bottom">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => window.location.href = '/profile'}
-                    className="hover:scale-105 transition-all duration-200"
-                  >
-                    <User className="h-4 w-4" />
-                  </Button>
-                </Tooltip>
-                {userInfo.is_admin === true && (
-                  <Tooltip content="后台管理" side="bottom">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => window.location.href = '/admin'}
-                      className="hover:scale-105 transition-all duration-200"
-                    >
-                      <Settings className="h-4 w-4" />
-                    </Button>
-                  </Tooltip>
-                )}
-                <Tooltip content="退出登录" side="bottom">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={onLogout}
-                    className="hover:scale-105 transition-all duration-200"
-                  >
-                    <LogOut className="h-4 w-4" />
-                  </Button>
-                </Tooltip>
-                <ThemeToggle />
+              <div className="flex items-center gap-3">
+                <UserDropdown 
+                  userInfo={userInfo} 
+                  onLogout={onLogout}
+                  onAvatarUpdate={(avatar) => {
+                    // 更新本地用户信息
+                    if (onRefreshUserInfo) {
+                      onRefreshUserInfo()
+                    }
+                  }}
+                />
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <Tooltip content="登录后可快速体验所有工作流案例" side="bottom">
+                <Tooltip content="登录解锁完整功能" side="bottom">
                   <Button size="sm" onClick={onLogin} className="hover:scale-105 transition-all duration-200">
                     <LogIn className="h-4 w-4 mr-2" />
                     登录
                   </Button>
                 </Tooltip>
-                <ThemeToggle />
               </div>
             )}
           </div>

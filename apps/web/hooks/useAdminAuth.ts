@@ -10,7 +10,7 @@ interface UserInfo {
   role: string
   email: string
   status: string
-  is_admin: number
+  is_admin: boolean
 }
 
 interface AdminAuthState {

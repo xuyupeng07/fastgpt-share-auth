@@ -13,6 +13,7 @@ export interface IUser extends Document {
   balance: number;
   status: 'active' | 'inactive';
   is_admin: boolean;
+  avatar?: string; // base64格式的头像数据
   created_at: Date;
   updated_at: Date;
 }
@@ -47,6 +48,10 @@ const UserSchema: Schema = new Schema({
   is_admin: {
     type: Boolean,
     default: false
+  },
+  avatar: {
+    type: String,
+    required: false
   }
 }, {
   timestamps: {

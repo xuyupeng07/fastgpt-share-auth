@@ -7,8 +7,8 @@ import { Badge } from "@workspace/ui/components/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui/components/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui/components/table"
 import { User, ArrowLeft, CreditCard, Activity, RefreshCw, Settings, Home } from "lucide-react"
-import { ThemeToggle } from "@/components/theme-toggle"
 import { Tooltip } from "@/components/ui/tooltip"
+import { UserDropdown } from "@/components/UserDropdown"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@workspace/ui/components/dialog"
 import { LoginDialog } from "@/components/auth/login-dialog"
 
@@ -21,6 +21,7 @@ interface UserInfo {
   status: string
   is_admin: boolean
   disabled?: boolean
+  avatar?: string
 }
 
 interface ConsumptionRecord {
@@ -227,29 +228,23 @@ export default function ProfilePage() {
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold">个人中心</h1>
           <div className="flex items-center space-x-3">
-            <Tooltip content="返回主页" side="bottom">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => window.location.href = '/'}
-                className="hover:scale-105 transition-all duration-200"
-              >
-                <Home className="h-4 w-4" />
-              </Button>
-            </Tooltip>
-            {userInfo.is_admin === true && (
-              <Tooltip content="后台管理" side="bottom">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => window.location.href = '/admin'}
-                  className="hover:scale-105 transition-all duration-200"
-                >
-                  <Settings className="h-4 w-4" />
-                </Button>
-              </Tooltip>
-            )}
-            <ThemeToggle />
+            <UserDropdown 
+              userInfo={userInfo} 
+              onLogout={() => {
+                localStorage.removeItem('authToken')
+                localStorage.removeItem('userInfo')
+                sessionStorage.clear()
+                document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+                window.location.href = '/'
+              }}
+              showHomeButton={true}
+              onAvatarUpdate={(avatar) => {
+                if (authToken) {
+                  refreshUserInfo(authToken)
+                }
+              }}
+              hideMenuItems={['profile']}
+            />
           </div>
         </div>
 
