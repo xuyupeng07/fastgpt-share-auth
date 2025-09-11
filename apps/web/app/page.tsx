@@ -30,11 +30,12 @@ interface Category {
 interface UserInfo {
   id: string
   username: string
-  balance: string
+  balance: number
   role: string
   email: string
   status: string
-  is_admin: number
+  is_admin: boolean
+  disabled?: boolean
 }
 
 export default function HomePage() {
@@ -211,11 +212,20 @@ export default function HomePage() {
             }
           }
           
+          // 监听全局余额更新事件
+          const handleBalanceUpdate = () => {
+            if (token) {
+              refreshUserInfo(token)
+            }
+          }
+          
           window.addEventListener('focus', handleFocus)
+          window.addEventListener('balanceUpdated', handleBalanceUpdate)
           
           // 设置清理函数
           cleanup = () => {
             window.removeEventListener('focus', handleFocus)
+            window.removeEventListener('balanceUpdated', handleBalanceUpdate)
           }
         }
         
@@ -350,7 +360,7 @@ export default function HomePage() {
               height={600}
               className="w-full mx-auto rounded-lg shadow-lg"
             />
-<div className="absolute bottom-2 left-14 md:bottom-4 md:left-22 lg:bottom-6 lg:left-48">
+<div className="absolute bottom-2 left-14 md:bottom-4 md:left-22 lg:bottom-6 lg:left-48 flex gap-2 sm:gap-3 md:gap-4">
   <a 
     href="https://fastgpt.cn/zh" 
     target="_blank" 
@@ -372,6 +382,34 @@ export default function HomePage() {
     {/* 文字 */}
     <span className="relative text-white group-hover:text-white text-xs sm:text-sm md:text-base lg:text-lg font-bold tracking-[0.05em] sm:tracking-[0.15em] transition-all duration-300 drop-shadow-lg">
       免费使用
+    </span>
+    
+    {/* 底部微光 */}
+    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-3/4 h-px bg-gradient-to-r from-transparent via-white/50 to-transparent group-hover:via-white/80 transition-all duration-500"></div>
+  </a>
+  
+  {/* 商业版咨询按钮 */}
+  <a 
+    href="https://fael3z0zfze.feishu.cn/share/base/form/shrcnjJWtKqjOI9NbQTzhNyzljc?prefill_S=C2&hide_S=1" 
+    target="_blank" 
+    rel="noopener noreferrer"
+    className="group relative flex items-center justify-center px-2 py-1.5 sm:px-4 sm:py-2.5 md:px-6 md:py-3 lg:px-8 lg:py-3.5 transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer"
+  >
+    {/* 外层光环 - 呼吸效果 */}
+    <div className="absolute -inset-0.5 sm:-inset-1 md:-inset-1.5 bg-gradient-to-r from-purple-400/30 via-white/20 to-pink-400/30 rounded-lg sm:rounded-xl md:rounded-2xl blur-sm sm:blur-md animate-pulse opacity-60 group-hover:opacity-100 transition-all duration-500"></div>
+    
+    {/* 透明磨砂背景 */}
+    <div className="absolute inset-0 backdrop-blur-xl sm:backdrop-blur-2xl rounded-lg sm:rounded-xl border border-white/20 group-hover:border-white/40 group-hover:bg-white/5 transition-all duration-300 overflow-hidden">
+      {/* 金属扫光效果 */}
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/0 to-transparent group-hover:via-white/40 group-hover:translate-x-full transition-all duration-800 -translate-x-full"></div>
+    </div>
+    
+    {/* 内层高光 */}
+    <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent rounded-lg sm:rounded-xl group-hover:from-white/20 transition-all duration-300"></div>
+    
+    {/* 文字 */}
+    <span className="relative text-white group-hover:text-white text-xs sm:text-sm md:text-base lg:text-lg font-bold tracking-[0.05em] sm:tracking-[0.15em] transition-all duration-300 drop-shadow-lg">
+      商业版咨询
     </span>
     
     {/* 底部微光 */}

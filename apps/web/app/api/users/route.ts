@@ -1,20 +1,46 @@
 import { NextResponse } from "next/server"
 import { getAllUsers, getUserById, deleteUser } from '@/lib/db'
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const searchId = searchParams.get('searchId');
+    const searchUsername = searchParams.get('searchUsername');
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '10');
+    
     const records = await getAllUsers();
     const recordsArray = Array.isArray(records) ? records : [];
     
     // 确保每个用户都有id字段
-    const usersWithId = recordsArray.map(user => ({
+    let usersWithId = recordsArray.map(user => ({
       ...user,
       id: user._id.toString() // 添加MongoDB的_id字段作为id
     }));
     
+    // 应用搜索过滤
+    if (searchId) {
+      usersWithId = usersWithId.filter(user => 
+        user.id.toString().includes(searchId)
+      );
+    } else if (searchUsername) {
+      usersWithId = usersWithId.filter(user => 
+        user.username && user.username.toLowerCase().includes(searchUsername.toLowerCase())
+      );
+    }
+    
+    // 计算总数
+    const total = usersWithId.length;
+    
+    // 应用分页
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    const paginatedUsers = usersWithId.slice(startIndex, endIndex);
+    
     return NextResponse.json({
       success: true,
-      users: usersWithId
+      users: paginatedUsers,
+      total: total
     });
   } catch (error) {
     console.error('获取用户列表失败:', error);

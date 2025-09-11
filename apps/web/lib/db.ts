@@ -125,7 +125,8 @@ export async function addConsumptionRecord(
   cost: number,
   responseData?: any,
   session?: any,
-  token?: string
+  token?: string,
+  appname?: string
 ) {
   try {
     await ensureConnection();
@@ -137,7 +138,8 @@ export async function addConsumptionRecord(
       token_used: tokenUsed,
       points_used: pointsUsed,
       cost,
-      response_data: responseData
+      response_data: responseData,
+      appname: appname
     });
     
     await record.save({ session });
@@ -171,11 +173,13 @@ export async function getAllConsumptionRecords() {
 
 
 
-// 根据用户名获取消费记录
+// 根据用户名获取消费记录（支持模糊查询）
 export async function getUserConsumptionRecordsByUsername(username: string) {
   try {
     await ensureConnection();
-    const records = await ConsumptionRecordModel.find({ username })
+    const records = await ConsumptionRecordModel.find({ 
+      username: { $regex: username, $options: 'i' } 
+    })
       .populate('user_id', 'username')
       .sort({ created_at: -1 })
       .lean();
@@ -263,11 +267,13 @@ export async function getAllRechargeRecords() {
 
 
 
-// 根据用户名获取充值记录
+// 根据用户名获取充值记录（支持模糊查询）
 export async function getRechargeRecordsByUsername(username: string) {
   try {
     await ensureConnection();
-    const records = await RechargeRecordModel.find({ username })
+    const records = await RechargeRecordModel.find({ 
+      username: { $regex: username, $options: 'i' } 
+    })
       .populate('user_id', 'username')
       .sort({ created_at: -1 })
       .lean();

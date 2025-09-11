@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserById, getWorkflowByName } from "@/lib/db";
 import { validateToken, checkRateLimit } from "@/lib/jwt";
+import { containsSensitiveWords } from "@/lib/sensitive-words";
 
 // 请求去重存储（简单的内存存储，生产环境建议使用Redis）
 const requestCache = new Map<string, { timestamp: number; response: any }>();
@@ -93,19 +94,17 @@ export async function POST(request: NextRequest) {
     
     console.log('✅ 余额检查通过, 余额:', balance);
 
-    // 简单的敏感词过滤
-    console.log('\n🔍 敏感词检查...');
-    const sensitiveWords = ['政治', '暴力', '色情', '赌博'];
-    const hasSensitiveWord = sensitiveWords.some(word => question && question.includes(word));
-    console.log('  检查内容:', question || '无内容');
-    
-    if (hasSensitiveWord) {
-      const errorResponse = { success: false, message: '内容包含敏感词，请重新输入' };
-      console.log('❌ 发现敏感词');
-      return NextResponse.json(errorResponse);
-    }
-    
-    console.log('✅ 敏感词检查通过');
+    // 敏感词过滤
+     console.log('\n🔍 敏感词检查...');
+     console.log('  检查内容:', question || '无内容');
+     
+     if (question && await containsSensitiveWords(question)) {
+       const errorResponse = { success: false, message: '内容包含敏感词，请重新输入' };
+       console.log('❌ 发现敏感词');
+       return NextResponse.json(errorResponse);
+     }
+     
+     console.log('✅ 敏感词检查通过');
     
     // 获取工作流信息（如果提供了appName）
     console.log('\n⚙️ 获取工作流信息...');

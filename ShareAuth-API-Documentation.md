@@ -170,7 +170,8 @@ curl -X POST http://localhost:3000/shareAuth/init \
 {
   "token": "string (必需)",        // JWT Token
   "question": "string (可选)",     // 用户问题
-  "shareId": "string (可选)"       // 分享ID
+  "shareId": "string (可选)",      // 分享ID
+  "appName": "string (推荐)"       // 工作流名称
 }
 ```
 
@@ -178,6 +179,7 @@ curl -X POST http://localhost:3000/shareAuth/init \
 - `token`: 从Init接口获取的JWT Token
 - `question`: 用户提出的问题，用于敏感词检查
 - `shareId`: 分享链接的唯一标识（可选）
+- `appName`: 工作流名称，推荐传递以获取工作流配置信息
 
 ### 请求示例
 
@@ -276,10 +278,18 @@ curl -X POST http://localhost:3000/shareAuth/start \
 ```json
 {
   "token": "string (必需)",           // JWT Token
-  "workflowId": "string (可选)",      // 工作流ID
+  "workflowId": "string (可选)",      // 工作流ID（已弃用）
+  "appName": "string (推荐)",         // 工作流名称，用于获取积分倍率和记录消费
   "responseData": "array (必需)"      // 对话响应数据
 }
 ```
+
+#### 重要说明
+- **appName参数**: 强烈推荐传递此参数，用于：
+  1. 获取工作流的积分倍率配置
+  2. 在消费记录中正确显示工作流名称
+  3. 如果不传递，消费记录中将显示"未知工作流"
+- **workflowId参数**: 已弃用，建议使用appName替代
 
 #### responseData 结构
 ```json
@@ -306,7 +316,7 @@ curl -X POST http://localhost:3000/shareAuth/finish \
   -H "Content-Type: application/json" \
   -d '{
     "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "workflowId": "507f1f77bcf86cd799439012",
+    "appName": "智能客服工作流",
     "responseData": [
       {
         "moduleName": "AI对话模块",

@@ -9,6 +9,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@workspace/ui/components/dialog';
 import { Plus, Edit, Trash2, ExternalLink, Check, X, Upload, Image as ImageIcon } from 'lucide-react';
 import Image from 'next/image';
+import { useStats } from '@/contexts/stats-context';
+import { toast } from 'sonner';
 
 // 工作流接口类型
 interface Workflow {
@@ -48,11 +50,11 @@ interface Category {
 }
 
 export default function WorkflowsTable() {
+  const { refreshStats } = useStats();
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState('');
-  const [messageType, setMessageType] = useState<'success' | 'error'>('success');
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingWorkflow, setEditingWorkflow] = useState<Workflow | null>(null);
   const [formData, setFormData] = useState<WorkflowFormData>({
@@ -76,11 +78,11 @@ export default function WorkflowsTable() {
       if (result.success) {
         setWorkflows(result.data);
       } else {
-        showMessage('加载工作流列表失败', 'error');
+        toast.error('加载工作流列表失败');
       }
     } catch (error) {
       console.error('加载工作流列表失败:', error);
-      showMessage('加载工作流列表失败', 'error');
+      toast.error('加载工作流列表失败');
     } finally {
       setLoading(false);
     }
@@ -103,11 +105,7 @@ export default function WorkflowsTable() {
   };
 
   // 显示消息
-  const showMessage = (msg: string, type: 'success' | 'error') => {
-    setMessage(msg);
-    setMessageType(type);
-    setTimeout(() => setMessage(''), 3000);
-  };
+
 
   // 重置表单
   const resetForm = () => {
@@ -151,13 +149,13 @@ export default function WorkflowsTable() {
 
     // 检查文件类型
     if (!file.type.startsWith('image/')) {
-      showMessage('请选择图片文件', 'error');
+      toast.error('请选择图片文件');
       return;
     }
 
     // 检查文件大小 (限制为2MB)
     if (file.size > 2 * 1024 * 1024) {
-      showMessage('图片大小不能超过2MB', 'error');
+      toast.error('图片大小不能超过2MB');
       return;
     }
 
@@ -183,7 +181,7 @@ export default function WorkflowsTable() {
   // 提交表单
   const handleSubmit = async () => {
     if (!formData.name.trim() || !formData.description.trim() || !formData.no_login_url.trim()) {
-      showMessage('请填写所有必填字段', 'error');
+      toast.error('请填写所有必填字段');
       return;
     }
 
@@ -191,7 +189,7 @@ export default function WorkflowsTable() {
     try {
       new URL(formData.no_login_url);
     } catch {
-      showMessage('请输入有效的URL格式', 'error');
+      toast.error('请输入有效的URL格式');
       return;
     }
 
@@ -214,15 +212,16 @@ export default function WorkflowsTable() {
       const result = await response.json();
       
       if (result.success) {
-        showMessage(result.message, 'success');
-        closeDialog();
+        toast.success(result.message);
         loadWorkflows();
+        refreshStats();
+        closeDialog();
       } else {
-        showMessage(result.message, 'error');
+        toast.error(result.message);
       }
     } catch (error) {
       console.error('提交失败:', error);
-      showMessage('操作失败，请重试', 'error');
+      toast.error('操作失败，请重试');
     } finally {
       setSubmitting(false);
     }
@@ -230,11 +229,24 @@ export default function WorkflowsTable() {
 
   // 删除工作流
   const handleDelete = async (id: number) => {
-    if (!confirm('确定要删除这个工作流吗？此操作不可恢复。')) {
-      return;
-    }
+    const confirmDelete = () => new Promise((resolve, reject) => {
+      toast('确定要删除这个工作流吗？此操作不可恢复。', {
+        action: {
+          label: '确认删除',
+          onClick: () => resolve(true)
+        },
+        cancel: {
+          label: '取消',
+          onClick: () => reject(new Error('用户取消操作'))
+        },
+        duration: 10000
+      })
+    })
 
     try {
+       await confirmDelete()
+       
+       try {
       const response = await fetch(`/api/workflows?id=${id}`, {
         method: 'DELETE',
       });
@@ -242,14 +254,21 @@ export default function WorkflowsTable() {
       const result = await response.json();
       
       if (result.success) {
-        showMessage(result.message, 'success');
+        toast.success(result.message);
         loadWorkflows();
+        refreshStats();
       } else {
-        showMessage(result.message, 'error');
+        toast.error(result.message);
       }
-    } catch (error) {
-      console.error('删除失败:', error);
-      showMessage('删除失败，请重试', 'error');
+      } catch (error) {
+        console.error('删除失败:', error);
+        toast.error('删除失败，请重试');
+      }
+    } catch (cancelError: any) {
+      // 用户取消操作，不显示错误信息
+      if (cancelError.message !== '用户取消操作') {
+        toast.error('删除失败，请重试');
+      }
     }
   };
 
@@ -459,17 +478,7 @@ export default function WorkflowsTable() {
         </div>
       </CardHeader>
       <CardContent>
-        {/* 消息提示 */}
-        {message && (
-          <div className={`p-4 rounded-md flex items-center gap-2 mb-4 ${
-            messageType === 'success' 
-              ? 'bg-green-50 text-green-700 border border-green-200' 
-              : 'bg-red-50 text-red-700 border border-red-200'
-          }`}>
-            {messageType === 'success' ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
-            {message}
-          </div>
-        )}
+
 
         {/* 工作流表格 */}
         <div className="rounded-md border">

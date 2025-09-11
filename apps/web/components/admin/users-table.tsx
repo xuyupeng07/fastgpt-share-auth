@@ -8,10 +8,13 @@ import { Button } from "@workspace/ui/components/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@workspace/ui/components/dialog"
 import { Input } from "@workspace/ui/components/input"
 import { Label } from "@workspace/ui/components/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui/components/select"
 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@workspace/ui/components/dropdown-menu"
 import { MoreHorizontal, Edit, Trash2, Key, Mail, Shield, ShieldOff, UserCheck, UserX, Plus } from "lucide-react"
 import { useStats } from "@/contexts/stats-context"
+import { toast } from "sonner"
+
 
 interface User {
   id: string // MongoDB的_id字段
@@ -29,7 +32,35 @@ export function UsersTable() {
   const [loading, setLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
+  const [totalUsers, setTotalUsers] = useState(0)
+  const [isDeleting, setIsDeleting] = useState<string | null>(null)
   const pageSize = 10
+  
+  // 搜索状态
+  const [searchType, setSearchType] = useState('username')
+  const [searchId, setSearchId] = useState('')
+  const [searchUsername, setSearchUsername] = useState('')
+  
+  // 防抖hook
+  const useDebounce = (value: string, delay: number) => {
+    const [debouncedValue, setDebouncedValue] = useState(value)
+    
+    useEffect(() => {
+      const handler = setTimeout(() => {
+        setDebouncedValue(value)
+      }, delay)
+      
+      return () => {
+        clearTimeout(handler)
+      }
+    }, [value, delay])
+    
+    return debouncedValue
+  }
+  
+  // 防抖搜索值
+  const debouncedSearchId = useDebounce(searchId, 300)
+  const debouncedSearchUsername = useDebounce(searchUsername, 300)
   
   // 对话框状态
   const [editPasswordDialog, setEditPasswordDialog] = useState(false)
@@ -54,15 +85,39 @@ export function UsersTable() {
   useEffect(() => {
     fetchUsers()
   }, [currentPage])
+  
+  // 实时搜索效果
+  useEffect(() => {
+    if (searchType === 'id' && debouncedSearchId !== '') {
+      setCurrentPage(1)
+      fetchUsers()
+    } else if (searchType === 'username' && debouncedSearchUsername !== '') {
+      setCurrentPage(1)
+      fetchUsers()
+    } else if (debouncedSearchId === '' && debouncedSearchUsername === '') {
+      setCurrentPage(1)
+      fetchUsers()
+    }
+  }, [debouncedSearchId, debouncedSearchUsername, searchType])
 
   const fetchUsers = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/users')
+      let url = `/api/users?page=${currentPage}&limit=${pageSize}`
+      
+      // 添加搜索参数
+      if (searchType === 'id' && debouncedSearchId.trim()) {
+        url += `&searchId=${encodeURIComponent(debouncedSearchId.trim())}`
+      } else if (searchType === 'username' && debouncedSearchUsername.trim()) {
+        url += `&searchUsername=${encodeURIComponent(debouncedSearchUsername.trim())}`
+      }
+      
+      const response = await fetch(url)
       if (response.ok) {
         const data = await response.json()
         setUsers(data.users || [])
         setTotalPages(Math.ceil((data.total || data.users?.length || 0) / pageSize))
+        setTotalUsers(data.total || data.users?.length || 0)
       }
     } catch (error) {
       console.error('获取用户列表失败:', error)
@@ -91,28 +146,28 @@ export function UsersTable() {
        } else {
         const errorData = await response.json()
         console.error('更新用户状态失败:', errorData.error)
-        alert('更新用户状态失败: ' + errorData.error)
+        toast.error('更新用户状态失败: ' + errorData.error)
       }
     } catch (error) {
       console.error('更新用户状态失败:', error)
-      alert('更新用户状态失败，请稍后重试')
+      toast.error('更新用户状态失败，请稍后重试')
     }
   }
 
   // 修改密码
   const handlePasswordChange = async () => {
     if (!selectedUser || !newPassword || !confirmPassword) {
-      alert('请填写完整信息')
+      toast.error('请填写完整信息')
       return
     }
     
     if (newPassword !== confirmPassword) {
-      alert('两次输入的密码不一致')
+      toast.error('两次输入的密码不一致')
       return
     }
     
     if (newPassword.length < 6) {
-      alert('密码长度至少6位')
+      toast.error('密码长度至少6位')
       return
     }
     
@@ -126,31 +181,31 @@ export function UsersTable() {
       })
       
       if (response.ok) {
-        alert('密码修改成功')
+        toast.success('密码修改成功')
         setEditPasswordDialog(false)
         setNewPassword('')
         setConfirmPassword('')
         setSelectedUser(null)
       } else {
         const errorData = await response.json()
-        alert('修改密码失败: ' + errorData.error)
+        toast.error('修改密码失败: ' + errorData.error)
       }
     } catch (error) {
       console.error('修改密码失败:', error)
-      alert('修改密码失败，请稍后重试')
+      toast.error('修改密码失败，请稍后重试')
     }
   }
 
   // 修改邮箱
   const handleEmailChange = async () => {
     if (!selectedUser || !newEmail) {
-      alert('请填写邮箱地址')
+      toast.error('请填写邮箱地址')
       return
     }
     
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(newEmail)) {
-      alert('请输入有效的邮箱地址')
+      toast.error('请输入有效的邮箱地址')
       return
     }
     
@@ -164,7 +219,7 @@ export function UsersTable() {
       })
       
       if (response.ok) {
-        alert('邮箱修改成功')
+        toast.success('邮箱修改成功')
         setUsers(users.map(user => 
           user.id === selectedUser.id ? { ...user, email: newEmail } : user
         ))
@@ -173,11 +228,11 @@ export function UsersTable() {
         setSelectedUser(null)
       } else {
         const errorData = await response.json()
-        alert('修改邮箱失败: ' + errorData.error)
+        toast.error('修改邮箱失败: ' + errorData.error)
       }
     } catch (error) {
       console.error('修改邮箱失败:', error)
-      alert('修改邮箱失败，请稍后重试')
+      toast.error('修改邮箱失败，请稍后重试')
     }
   }
 
@@ -202,21 +257,34 @@ export function UsersTable() {
       } else {
         const errorData = await response.json()
         console.error('更新管理员权限失败:', errorData.error)
-        alert('更新管理员权限失败: ' + errorData.error)
+        toast.error('更新管理员权限失败: ' + errorData.error)
       }
     } catch (error) {
       console.error('更新管理员权限失败:', error)
-      alert('更新管理员权限失败，请稍后重试')
+      toast.error('更新管理员权限失败，请稍后重试')
     }
   }
 
   // 删除用户
   const handleDeleteUser = async (userId: string) => {
-    if (!confirm('确定要删除这个用户吗？此操作不可撤销。')) {
-      return
-    }
-    
+    const confirmDelete = () => new Promise((resolve, reject) => {
+      toast('确定要删除这个用户吗？此操作不可撤销。', {
+        action: {
+          label: '确认删除',
+          onClick: () => resolve(true)
+        },
+        cancel: {
+          label: '取消',
+          onClick: () => reject(new Error('用户取消操作'))
+        },
+        duration: 10000
+      })
+    })
+
     try {
+       await confirmDelete()
+       
+       try {
       const response = await fetch('/api/users/delete', {
         method: 'DELETE',
         headers: {
@@ -226,20 +294,24 @@ export function UsersTable() {
       })
       
       if (response.ok) {
-        alert('用户删除成功')
+        toast.success('用户删除成功')
         setUsers(users.filter(user => user.id !== userId))
         refreshStats()
       } else {
         const errorData = await response.json()
-        alert('删除用户失败: ' + errorData.error)
+        toast.error('删除用户失败: ' + errorData.error)
       }
     } catch (error) {
-      console.error('删除用户失败:', error)
-      alert('删除用户失败，请稍后重试')
-    }
-  }
-
-  // 打开修改密码对话框
+          console.error('删除用户失败:', error)
+          toast.error('删除用户失败，请稍后重试')
+        }
+    } catch (cancelError: any) {
+       // 用户取消操作，不显示错误信息
+       if (cancelError.message !== '用户取消操作') {
+         toast.error('删除用户失败，请稍后重试')
+       }
+     }
+  }// 打开修改密码对话框
   const openPasswordDialog = (user: User) => {
     setSelectedUser(user)
     setNewPassword('')
@@ -274,17 +346,17 @@ export function UsersTable() {
   // 新增用户
   const handleAddUser = async () => {
     if (!newUserData.username || !newUserData.email || !newUserData.password) {
-      alert('请填写所有必填字段')
+      toast.error('请填写所有必填字段')
       return
     }
 
     if (newUserData.password !== newUserData.confirmPassword) {
-      alert('两次输入的密码不一致')
+      toast.error('两次输入的密码不一致')
       return
     }
 
     if (newUserData.password.length < 6) {
-      alert('密码长度至少6位')
+      toast.error('密码长度至少6位')
       return
     }
 
@@ -304,18 +376,18 @@ export function UsersTable() {
       })
 
       if (response.ok) {
-        alert('用户创建成功')
+        toast.success('用户创建成功')
         setAddUserDialog(false)
         resetAddUserForm()
         fetchUsers() // 重新获取用户列表
         refreshStats()
       } else {
         const errorData = await response.json()
-        alert('创建用户失败: ' + errorData.error)
+        toast.error('创建用户失败: ' + errorData.error)
       }
     } catch (error) {
       console.error('创建用户失败:', error)
-      alert('创建用户失败，请稍后重试')
+      toast.error('创建用户失败，请稍后重试')
     }
   }
 
@@ -453,18 +525,46 @@ export function UsersTable() {
         </div>
       </CardHeader>
       <CardContent>
+        {/* 搜索区域 */}
+        <div className="flex gap-4 mb-6">
+          <Select value={searchType} onValueChange={setSearchType}>
+            <SelectTrigger className="w-32">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="id">用户ID</SelectItem>
+              <SelectItem value="username">用户名</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          {searchType === 'id' ? (
+            <Input
+              placeholder="请输入用户ID"
+              value={searchId}
+              onChange={(e) => setSearchId(e.target.value)}
+              className="max-w-xs"
+            />
+          ) : (
+            <Input
+              placeholder="请输入用户名"
+              value={searchUsername}
+              onChange={(e) => setSearchUsername(e.target.value)}
+              className="max-w-xs"
+            />
+          )}
+        </div>
         <div className="rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="pl-6 w-60">ID</TableHead>
-                <TableHead className="w-32">用户名</TableHead>
-                <TableHead className="w-48">邮箱</TableHead>
-                <TableHead className="w-28 text-center">余额</TableHead>
-                <TableHead className="w-20 text-center">状态</TableHead>
-                <TableHead className="w-24 text-center">管理员</TableHead>
-                <TableHead className="w-44">创建时间</TableHead>
-                <TableHead className="w-20 text-center">操作</TableHead>
+                <TableHead className="text-left pl-4">用户ID</TableHead>
+                <TableHead className="text-left">用户名</TableHead>
+                <TableHead className="text-left">邮箱</TableHead>
+                <TableHead className="text-center">余额</TableHead>
+                <TableHead className="text-center">状态</TableHead>
+                <TableHead className="text-center">管理员</TableHead>
+                <TableHead className="text-left">创建时间</TableHead>
+                <TableHead className="text-center pr-4">操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -480,9 +580,9 @@ export function UsersTable() {
                     key={user.id}
                     className="hover:bg-muted/50 transition-colors"
                   >
-                    <TableCell className="pl-6 font-mono text-xs text-muted-foreground max-w-56 truncate" title={user.id.toString()}>{user.id.toString()}</TableCell>
-                    <TableCell className="font-medium">{user.username}</TableCell>
-                    <TableCell className="text-muted-foreground">{user.email}</TableCell>
+                    <TableCell className="text-left pl-4 font-mono text-xs text-muted-foreground max-w-56 truncate" title={user.id.toString()}>{user.id.toString()}</TableCell>
+                    <TableCell className="text-left font-medium">{user.username}</TableCell>
+                    <TableCell className="text-left text-muted-foreground">{user.email}</TableCell>
                     <TableCell className="text-center">
                       <span className="font-semibold text-green-600 dark:text-green-400">
                         ¥{(parseFloat(String(user.balance)) || 0).toFixed(2)}
@@ -498,8 +598,8 @@ export function UsersTable() {
                         {user.is_admin ? '是' : '否'}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{formatDate(user.created_at)}</TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="text-left text-sm text-muted-foreground">{formatDate(user.created_at)}</TableCell>
+                    <TableCell className="text-center pr-4">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button 

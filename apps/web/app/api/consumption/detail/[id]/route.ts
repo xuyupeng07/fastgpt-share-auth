@@ -206,6 +206,7 @@ export async function GET(
       data: {
         id: record.id,
         username: record.username,
+        appname: record.appname,
         token_used: record.token_used,
         points_used: record.points_used,
         cost: record.cost,

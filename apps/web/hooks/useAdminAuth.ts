@@ -82,7 +82,7 @@ export function useAdminAuth() {
           }
           
           // 检查管理员权限
-          const isAdmin = user.is_admin === 1 || user.role === 'admin'
+          const isAdmin = user.is_admin === true || user.role === 'admin'
           
           if (!isAdmin) {
             setAuthState({

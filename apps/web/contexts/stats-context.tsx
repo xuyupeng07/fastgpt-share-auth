@@ -1,6 +1,6 @@
 "use client"
 
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react'
+import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect, useRef } from 'react'
 
 interface Stats {
   totalUsers: number
@@ -24,6 +24,8 @@ export function StatsProvider({ children }: { children: ReactNode }) {
     totalConsumption: 0,
     todayConsumption: 0
   })
+  
+  const isActiveRef = useRef(true)
 
   const updateStats = useCallback(async () => {
     try {
@@ -80,6 +82,39 @@ export function StatsProvider({ children }: { children: ReactNode }) {
 
   const refreshStats = useCallback(() => {
     updateStats()
+  }, [updateStats])
+
+  // 页面可见性检测
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      isActiveRef.current = !document.hidden
+      if (!document.hidden) {
+        // 页面重新可见时立即刷新数据
+        updateStats()
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [updateStats])
+
+  // 初始加载统计数据
+  useEffect(() => {
+    updateStats()
+  }, [updateStats])
+
+  // 监听自定义事件，用于手动触发刷新
+  useEffect(() => {
+    const handleStatsRefresh = () => {
+      updateStats()
+    }
+
+    window.addEventListener('refreshStats', handleStatsRefresh)
+    return () => {
+      window.removeEventListener('refreshStats', handleStatsRefresh)
+    }
   }, [updateStats])
 
   return (

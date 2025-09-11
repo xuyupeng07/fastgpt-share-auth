@@ -26,10 +26,10 @@ export async function GET(request: Request) {
     
     // 根据查询条件过滤记录
     if (id) {
-      const recordId = parseInt(id);
-      if (!isNaN(recordId)) {
-        filteredRecords = filteredRecords.filter((record: ConsumptionRecord) => record.id.toString() === recordId.toString());
-      }
+      // 直接使用字符串比较，支持ObjectId格式的ID搜索
+      filteredRecords = filteredRecords.filter((record: ConsumptionRecord) => 
+        record.id.toString().includes(id)
+      );
     } else if (username) {
       filteredRecords = filteredRecords.filter((record: ConsumptionRecord) => 
         record.username && record.username.toLowerCase().includes(username.toLowerCase())

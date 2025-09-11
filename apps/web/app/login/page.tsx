@@ -2,16 +2,22 @@
 
 import { LoginForm } from "@/components/auth/login-form"
 import { Card, CardContent, CardDescription, CardHeader } from "@workspace/ui/components/card"
-import { AlertMessage } from "@/components/ui/alert-message"
+import { toast } from "sonner"
 import { ThemeToggle } from "@/components/theme-toggle"
 // AlertTriangle removed as it is not used
 import Image from "next/image"
 import { useSearchParams } from "next/navigation"
-import { Suspense } from "react"
+import { Suspense, useEffect } from "react"
 
 function LoginContent() {
   const searchParams = useSearchParams()
   const isDisabled = searchParams.get('disabled') === 'true'
+
+  useEffect(() => {
+    if (isDisabled) {
+      toast.error('您的账户已被禁用，请联系管理员获取帮助。')
+    }
+  }, [isDisabled])
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -20,13 +26,7 @@ function LoginContent() {
           <ThemeToggle />
         </div>
         
-        {isDisabled && (
-          <AlertMessage 
-            message="您的账户已被禁用，请联系管理员获取帮助。" 
-            type="error" 
-          />
-        )}
-        
+
         <Card>
           <CardHeader className="text-center">
             <div className="mb-4">

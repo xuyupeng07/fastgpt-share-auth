@@ -33,10 +33,10 @@ export async function GET(request: NextRequest) {
     
     // 根据查询条件过滤记录
     if (id) {
-      const recordId = parseInt(id)
-      if (!isNaN(recordId)) {
-        filteredRecords = recordsArray.filter((record: RechargeRecord) => record.id.toString() === recordId.toString())
-      }
+      // 直接使用字符串比较，支持ObjectId格式的ID搜索
+      filteredRecords = recordsArray.filter((record: RechargeRecord) => 
+        record.id.toString().includes(id)
+      )
     } else if (username) {
       filteredRecords = recordsArray.filter((record: RechargeRecord) => 
         record.username && record.username.toLowerCase().includes(username.toLowerCase())

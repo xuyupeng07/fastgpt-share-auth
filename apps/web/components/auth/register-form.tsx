@@ -4,7 +4,7 @@ import { useState, useCallback } from "react"
 import { Button } from "@workspace/ui/components/button"
 import { Input } from "@workspace/ui/components/input"
 import { Label } from "@workspace/ui/components/label"
-import { AlertMessage } from "@/components/ui/alert-message"
+import { toast } from "sonner"
 import { AuthUtils } from "@/lib/auth"
 
 interface RegisterFormProps {
@@ -20,34 +20,31 @@ export function RegisterForm({ onSuccess, onLoginClick }: RegisterFormProps = {}
     confirmPassword: ''
   })
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
+
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
-    setError('')
-    setSuccess('')
     
     // 表单验证
     if (!formData.username || !formData.email || !formData.password) {
-      setError('请填写所有必填字段')
+      toast.error('请填写所有必填字段')
       return
     }
 
     if (formData.password !== formData.confirmPassword) {
-      setError('两次输入的密码不一致')
+      toast.error('两次输入的密码不一致')
       return
     }
 
     if (formData.password.length < 6) {
-      setError('密码长度至少6位')
+      toast.error('密码长度至少6位')
       return
     }
 
     // 邮箱格式验证
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(formData.email)) {
-      setError('请输入有效的邮箱地址')
+      toast.error('请输入有效的邮箱地址')
       return
     }
 
@@ -71,18 +68,18 @@ export function RegisterForm({ onSuccess, onLoginClick }: RegisterFormProps = {}
       if (response.ok && data.success) {
         // 注册成功，自动登录
         AuthUtils.handleLoginSuccess(data.data.token, data.data.user)
-        setSuccess('注册成功！正在为您自动登录...')
+        toast.success('注册成功！正在为您自动登录...')
         
         // 延迟一下让用户看到成功消息，然后调用成功回调
         setTimeout(() => {
           onSuccess?.()
         }, 1500)
       } else {
-        setError(data.error || data.message || '注册失败，请稍后重试')
+        toast.error(data.error || data.message || '注册失败，请稍后重试')
       }
     } catch (error) {
       console.error('注册失败:', error)
-      setError('注册失败，请稍后重试')
+      toast.error('注册失败，请稍后重试')
     } finally {
       setIsLoading(false)
     }
@@ -94,9 +91,7 @@ export function RegisterForm({ onSuccess, onLoginClick }: RegisterFormProps = {}
 
   return (
     <div className="space-y-4">
-      {error && <AlertMessage message={error} type="error" />}
-      {success && <AlertMessage message={success} type="success" />}
-      
+
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="username">

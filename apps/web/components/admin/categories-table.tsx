@@ -22,6 +22,8 @@ import {
 } from '@workspace/ui/components/dialog'
 import { Card, CardContent, CardHeader, CardTitle } from '@workspace/ui/components/card'
 import { Plus, Edit, Trash2, AlertCircle } from 'lucide-react'
+import { useStats } from '@/contexts/stats-context'
+import { toast } from 'sonner'
 
 // 分类接口类型
 interface Category {
@@ -42,6 +44,7 @@ interface CategoryFormData {
 }
 
 export function CategoriesTable() {
+  const { refreshStats } = useStats()
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
@@ -53,7 +56,7 @@ export function CategoriesTable() {
     sort_order: 0,
     status: 'active'
   })
-  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+
   const [submitting, setSubmitting] = useState(false)
 
   // 加载分类列表
@@ -73,21 +76,17 @@ export function CategoriesTable() {
         setCategories(data)
       } else {
         const errorData = await response.json()
-        showMessage('error', errorData.error || '获取分类列表失败')
+        toast.error(errorData.error || '获取分类列表失败')
       }
     } catch (error) {
       console.error('获取分类列表失败:', error)
-      showMessage('error', '获取分类列表失败，请稍后重试')
+      toast.error('获取分类列表失败，请稍后重试')
     } finally {
       setLoading(false)
     }
   }
 
-  // 显示消息
-  const showMessage = (type: 'success' | 'error', text: string) => {
-    setMessage({ type, text })
-    setTimeout(() => setMessage(null), 3000)
-  }
+
 
   // 重置表单
   const resetForm = () => {
@@ -134,7 +133,7 @@ export function CategoriesTable() {
   const handleSubmit = async (isEdit: boolean = false) => {
     // 验证表单
     if (!formData.name.trim()) {
-      showMessage('error', '分类名称不能为空')
+      toast.error('分类名称不能为空')
       return
     }
 
@@ -157,16 +156,17 @@ export function CategoriesTable() {
       })
 
       if (response.ok) {
-        showMessage('success', isEdit ? '分类更新成功' : '分类创建成功')
+        toast.success(isEdit ? '分类更新成功' : '分类创建成功')
         closeDialogs()
         loadCategories()
+        refreshStats()
       } else {
         const errorData = await response.json()
-        showMessage('error', errorData.error || (isEdit ? '更新分类失败' : '创建分类失败'))
+        toast.error(errorData.error || (isEdit ? '更新分类失败' : '创建分类失败'))
       }
     } catch (error) {
       console.error('提交表单失败:', error)
-      showMessage('error', isEdit ? '更新分类失败，请稍后重试' : '创建分类失败，请稍后重试')
+      toast.error(isEdit ? '更新分类失败，请稍后重试' : '创建分类失败，请稍后重试')
     } finally {
       setSubmitting(false)
     }
@@ -188,16 +188,17 @@ export function CategoriesTable() {
       })
 
       if (response.ok) {
-        showMessage('success', '分类删除成功')
+        toast.success('分类删除成功')
         closeDialogs()
         loadCategories()
+        refreshStats()
       } else {
         const errorData = await response.json()
-        showMessage('error', errorData.error || '删除分类失败')
+        toast.error(errorData.error || '删除分类失败')
       }
     } catch (error) {
       console.error('删除分类失败:', error)
-      showMessage('error', '删除分类失败，请稍后重试')
+      toast.error('删除分类失败，请稍后重试')
     } finally {
       setSubmitting(false)
     }
@@ -235,17 +236,7 @@ export function CategoriesTable() {
         </div>
       </CardHeader>
       <CardContent>
-        {/* 消息提示 */}
-        {message && (
-          <div className={`p-4 rounded-md border mb-4 ${message.type === 'error' ? 'border-red-500 bg-red-50' : 'border-green-500 bg-green-50'}`}>
-            <div className="flex items-center">
-              <AlertCircle className="h-4 w-4 mr-2" />
-              <span className={message.type === 'error' ? 'text-red-700' : 'text-green-700'}>
-                {message.text}
-              </span>
-            </div>
-          </div>
-        )}
+
 
         {/* 分类表格 */}
         <div className="border rounded-lg">

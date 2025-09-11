@@ -4,7 +4,7 @@ import { useState, useCallback } from "react"
 import { Button } from "@workspace/ui/components/button"
 import { Input } from "@workspace/ui/components/input"
 import { Label } from "@workspace/ui/components/label"
-import { AlertMessage } from "@/components/ui/alert-message"
+import { toast } from "sonner"
 import { AuthUtils } from "@/lib/auth"
 
 interface LoginFormProps {
@@ -16,11 +16,12 @@ export function LoginForm({ onSuccess, onRegisterClick }: LoginFormProps = {}) {
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const [alert, setAlert] = useState<{ message: string; type: "error" | "success" } | null>(null)
-
   const showAlert = useCallback((message: string, type: "error" | "success" = "error") => {
-    setAlert({ message, type })
-    setTimeout(() => setAlert(null), 5000)
+    if (type === "success") {
+      toast.success(message)
+    } else {
+      toast.error(message)
+    }
   }, [])
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
@@ -78,10 +79,6 @@ export function LoginForm({ onSuccess, onRegisterClick }: LoginFormProps = {}) {
 
   return (
     <div className="space-y-6">
-      {alert && (
-        <AlertMessage message={alert.message} type={alert.type} />
-      )}
-      
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="username">用户名</Label>

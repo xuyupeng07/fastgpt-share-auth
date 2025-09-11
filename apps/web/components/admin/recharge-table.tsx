@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui/components/table"
 import { Badge } from "@workspace/ui/components/badge"
@@ -8,6 +8,7 @@ import { Button } from "@workspace/ui/components/button"
 import { Input } from "@workspace/ui/components/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui/components/select"
 import { useStats } from "@/contexts/stats-context"
+import { toast } from "sonner"
 
 interface RechargeRecord {
   id: number
@@ -41,10 +42,37 @@ export function RechargeTable() {
   const [loadingUsers, setLoadingUsers] = useState(false)
   const pageSize = 10
 
+  // 防抖hook
+  const useDebounce = (value: string, delay: number) => {
+    const [debouncedValue, setDebouncedValue] = useState(value)
+    
+    useEffect(() => {
+      const handler = setTimeout(() => {
+        setDebouncedValue(value)
+      }, delay)
+      
+      return () => {
+        clearTimeout(handler)
+      }
+    }, [value, delay])
+    
+    return debouncedValue
+  }
+
+  // 防抖后的搜索值
+  const debouncedSearchId = useDebounce(searchId, 300)
+  const debouncedSearchUsername = useDebounce(searchUsername, 300)
+
   useEffect(() => {
     fetchRechargeRecords()
     fetchUsers()
   }, [currentPage])
+
+  // 监听防抖后的搜索值变化，实现实时搜索
+  useEffect(() => {
+    setCurrentPage(1)
+    fetchRechargeRecords()
+  }, [debouncedSearchId, debouncedSearchUsername, searchType])
 
   const fetchUsers = async () => {
     try {
@@ -71,11 +99,11 @@ export function RechargeTable() {
         limit: pageSize.toString()
       })
       
-      if (searchType === 'id' && searchId) {
-        params.append('id', searchId)
+      if (searchType === 'id' && debouncedSearchId) {
+        params.append('id', debouncedSearchId)
         url = `/api/recharge/records?${params}`
-      } else if (searchType === 'username' && searchUsername) {
-        params.append('username', searchUsername)
+      } else if (searchType === 'username' && debouncedSearchUsername) {
+        params.append('username', debouncedSearchUsername)
         url = `/api/recharge/records?${params}`
       } else {
         url = `/api/recharge/records?${params}`
@@ -130,7 +158,7 @@ export function RechargeTable() {
 
   const handleRecharge = async () => {
     if (!newRecharge.userId || !newRecharge.amount || newRecharge.userId === 'loading' || newRecharge.userId === 'no-users') {
-      alert('请选择用户和充值金额')
+      toast.error('请选择用户和充值金额')
       return
     }
 
@@ -149,26 +177,29 @@ export function RechargeTable() {
 
       const data = await response.json()
       if (data.success) {
-        alert(`充值成功！新余额: ${(data.data.balance || 0).toFixed(2)}积分`)
+        toast.success(`充值成功！新余额: ${(data.data.balance || 0).toFixed(2)}积分`)
         setNewRecharge({ userId: '', amount: '' })
         fetchUsers() // 刷新用户列表以更新余额显示
         fetchRechargeRecords()
         // 触发统计数据热更新
         refreshStats()
+        // 触发全局统计数据刷新事件
+        window.dispatchEvent(new CustomEvent('refreshStats'))
       } else {
-        alert(`充值失败: ${data.message || '未知错误'}`)
+        toast.error(`充值失败: ${data.message || '未知错误'}`)
       }
     } catch (error) {
       console.error('充值失败:', error)
-      alert('充值失败，请重试')
+      toast.error('充值失败，请重试')
     } finally {
       setIsAdding(false)
     }
   }
 
-  const handleSearch = () => {
+  const handleReset = () => {
+    setSearchId('')
+    setSearchUsername('')
     setCurrentPage(1)
-    fetchRechargeRecords()
   }
 
   const formatDate = (dateString: string) => {
@@ -264,33 +295,27 @@ export function RechargeTable() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="username">用户名</SelectItem>
-              <SelectItem value="id">ID</SelectItem>
+              <SelectItem value="id">订单ID</SelectItem>
             </SelectContent>
           </Select>
           {searchType === 'username' ? (
             <Input
-              placeholder="输入用户名搜索充值记录"
+              placeholder="输入用户名实时搜索充值记录"
               value={searchUsername}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchUsername(e.target.value)}
               className="max-w-sm"
             />
           ) : (
             <Input
-              placeholder="输入ID搜索充值记录"
+              placeholder="输入订单ID实时搜索充值记录"
               value={searchId}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchId(e.target.value)}
               className="max-w-sm"
             />
           )}
-          <Button onClick={handleSearch}>搜索</Button>
           <Button 
             variant="outline" 
-            onClick={() => {
-              setSearchId('')
-              setSearchUsername('')
-              setCurrentPage(1)
-              fetchRechargeRecords()
-            }}
+            onClick={handleReset}
           >
             重置
           </Button>
@@ -300,26 +325,28 @@ export function RechargeTable() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="pl-6 w-36">用户名</TableHead>
-                <TableHead className="w-32 text-center">充值金额</TableHead>
-                <TableHead className="w-32 text-center">充值前余额</TableHead>
-                <TableHead className="w-32 text-center">充值后余额</TableHead>
-                <TableHead className="w-24 text-center">状态</TableHead>
-                <TableHead className="w-44">时间</TableHead>
-                <TableHead className="w-32">备注</TableHead>
+                <TableHead className="text-left">订单ID</TableHead>
+                <TableHead className="text-left">用户名</TableHead>
+                <TableHead className="text-center">充值金额</TableHead>
+                <TableHead className="text-center">充值前余额</TableHead>
+                <TableHead className="text-center">充值后余额</TableHead>
+                <TableHead className="text-left">时间</TableHead>
+                <TableHead className="text-left">备注</TableHead>
+                <TableHead className="text-center">操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {records.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
+                  <TableCell colSpan={8} className="text-center py-8">
                     {searchId || searchUsername ? '未找到相关充值记录' : '暂无充值记录'}
                   </TableCell>
                 </TableRow>
               ) : (
                 records.map((record) => (
                   <TableRow key={record.id}>
-                    <TableCell className="font-medium pl-6">
+                    <TableCell className="text-left font-mono text-sm text-muted-foreground">{record.id}</TableCell>
+                    <TableCell className="text-left font-medium">
                       {record.username || '-'}
                     </TableCell>
                     <TableCell className="text-center">
@@ -337,15 +364,15 @@ export function RechargeTable() {
                         ¥{record.balance_after.toFixed(2)}
                       </span>
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="text-left">
                       <Badge variant={getStatusBadgeVariant(record.status)}>
                         {getStatusText(record.status)}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
+                    <TableCell className="text-left text-sm text-muted-foreground">
                       {formatDate(record.created_at)}
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground max-w-32 truncate" title={record.remark || '-'}>
+                    <TableCell className="text-left text-sm text-muted-foreground max-w-32 truncate" title={record.remark || '-'}>
                       {record.remark || '-'}
                     </TableCell>
                   </TableRow>

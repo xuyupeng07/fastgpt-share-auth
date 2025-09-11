@@ -3,14 +3,16 @@
 import React, { useState, useEffect } from 'react'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
-import { User, LogOut, LogIn, Search } from 'lucide-react'
+import { User, LogOut, LogIn, Search, Settings, Home } from 'lucide-react'
 import { ThemeToggle } from './theme-toggle'
+import { Tooltip } from './ui/tooltip'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
 
 interface UserInfo {
   username: string
-  balance: string
+  balance: number
+  is_admin?: boolean
 }
 
 interface HeaderProps {
@@ -61,33 +63,15 @@ export function Header({
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
-          {/* Logo和标题 - 向右移动 */}
-          <motion.div 
-            className="flex items-center gap-4 cursor-pointer group relative ml-8 lg:ml-16"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ 
-              duration: 0.8, 
-              ease: [0.25, 0.46, 0.45, 0.94],
-              delay: 0.1
-            }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+          {/* Logo和标题 - 左对齐 */}
+          <div 
+            className="flex items-center gap-4 cursor-pointer group relative"
             onClick={() => {
               window.open('https://fastgpt.cn/zh', '_blank')
             }}
           >
             {/* FastGPT图标 */}
-            <motion.div
-              className="relative"
-              initial={{ rotate: -10, scale: 0.8 }}
-              animate={{ rotate: 0, scale: 1 }}
-              transition={{ 
-                duration: 1.2, 
-                ease: [0.34, 1.56, 0.64, 1],
-                delay: 0.3
-              }}
-            >
+            <div className="relative">
               <Image
                 src="/fastgpt.svg"
                 alt="FastGPT"
@@ -96,13 +80,10 @@ export function Header({
                 className="h-14 w-14 transition-all duration-300 group-hover:drop-shadow-lg"
               />
               {/* 光晕效果 */}
-               <motion.div
-                 className="absolute inset-0 rounded-full bg-black/10 dark:bg-white/10 blur-lg opacity-0 group-hover:opacity-100"
-                 initial={false}
-                 animate={{ scale: [1, 1.2, 1] }}
-                 transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+               <div
+                 className="absolute inset-0 rounded-full bg-black/10 dark:bg-white/10 blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                />
-            </motion.div>
+            </div>
             
             {/* FastGPT文字 */}
             <motion.div
@@ -151,7 +132,7 @@ export function Header({
             </motion.div>
             
 
-          </motion.div>
+          </div>
           
 
 
@@ -181,7 +162,7 @@ export function Header({
                     </span>
                   </div>
                   <div className="text-sm font-medium text-primary">
-                    积分余额: {parseFloat(userInfo.balance || '0').toFixed(2)} Credits
+                    积分余额: {(userInfo.balance || 0).toFixed(2)} Credits
                   </div>
                 </div>
               </div>
@@ -203,28 +184,48 @@ export function Header({
             {/* 用户操作按钮 */}
             {userInfo ? (
               <div className="flex items-center gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => window.location.href = '/profile'}
-                >
-                  <User className="h-4 w-4" />
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={onLogout}
-                >
-                  <LogOut className="h-4 w-4" />
-                </Button>
+                <Tooltip content="个人中心" side="bottom">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => window.location.href = '/profile'}
+                    className="hover:scale-105 transition-all duration-200"
+                  >
+                    <User className="h-4 w-4" />
+                  </Button>
+                </Tooltip>
+                {userInfo.is_admin === true && (
+                  <Tooltip content="后台管理" side="bottom">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => window.location.href = '/admin'}
+                      className="hover:scale-105 transition-all duration-200"
+                    >
+                      <Settings className="h-4 w-4" />
+                    </Button>
+                  </Tooltip>
+                )}
+                <Tooltip content="退出登录" side="bottom">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={onLogout}
+                    className="hover:scale-105 transition-all duration-200"
+                  >
+                    <LogOut className="h-4 w-4" />
+                  </Button>
+                </Tooltip>
                 <ThemeToggle />
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <Button size="sm" onClick={onLogin}>
-                  <LogIn className="h-4 w-4 mr-2" />
-                  登录
-                </Button>
+                <Tooltip content="登录后可快速体验所有工作流案例" side="bottom">
+                  <Button size="sm" onClick={onLogin} className="hover:scale-105 transition-all duration-200">
+                    <LogIn className="h-4 w-4 mr-2" />
+                    登录
+                  </Button>
+                </Tooltip>
                 <ThemeToggle />
               </div>
             )}

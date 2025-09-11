@@ -189,7 +189,8 @@ export async function POST(request: NextRequest) {
             actualPointsToDeduct,
             body.responseData,
             session,
-            token
+            token,
+            appName
           );
           
           if (recordResult) {
@@ -212,6 +213,7 @@ export async function POST(request: NextRequest) {
         const responseData = {
           success: true,
           message: '上报成功',
+          balanceUpdated: true, // 添加余额更新标识，用于触发客户端事件
           data: {
             cost: actualPointsToDeduct,
             balance: newBalance,

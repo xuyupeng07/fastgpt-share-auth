@@ -6,8 +6,9 @@ import { Button } from "@workspace/ui/components/button"
 import { Badge } from "@workspace/ui/components/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui/components/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui/components/table"
-import { User, ArrowLeft, CreditCard, Activity, RefreshCw } from "lucide-react"
+import { User, ArrowLeft, CreditCard, Activity, RefreshCw, Settings, Home } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { Tooltip } from "@/components/ui/tooltip"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@workspace/ui/components/dialog"
 import { LoginDialog } from "@/components/auth/login-dialog"
 
@@ -18,7 +19,7 @@ interface UserInfo {
   role: string
   email: string
   status: string
-  is_admin: number
+  is_admin: boolean
   disabled?: boolean
 }
 
@@ -32,6 +33,7 @@ interface ConsumptionRecord {
   created_at: string
   response_data?: string
   chat_history?: any[]
+  appname?: string
 }
 
 interface RechargeRecord {
@@ -52,8 +54,7 @@ export default function ProfilePage() {
   const [showLoginDialog, setShowLoginDialog] = useState(false)
   const [rechargeRecords, setRechargeRecords] = useState<RechargeRecord[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedRecord, setSelectedRecord] = useState<ConsumptionRecord | null>(null)
-  const [detailLoading, setDetailLoading] = useState<{[key: number]: boolean}>({})
+
 
   // 获取最新用户信息
   const refreshUserInfo = useCallback(async (token: string): Promise<UserInfo | null> => {
@@ -142,24 +143,8 @@ export default function ProfilePage() {
     }
   }, [refreshUserInfo])
 
-  const fetchRecordDetail = useCallback(async (recordId: number) => {
-    setDetailLoading(prev => ({ ...prev, [recordId]: true }))
-    try {
-      const response = await fetch(`/api/consumption/detail/${recordId}`)
-      if (response.ok) {
-        const data = await response.json()
-        if (data.success) {
-          setSelectedRecord(data.data)
-        } else {
-          console.error('获取详情失败:', data.message)
-        }
-      }
-    } catch (error) {
-      console.error('获取消费详情失败:', error)
-    } finally {
-      setDetailLoading(prev => ({ ...prev, [recordId]: false }))
-    }
-  }, [])
+
+
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString('zh-CN')
@@ -195,12 +180,6 @@ export default function ProfilePage() {
     
     const userInfo = JSON.parse(user)
     
-    // 检查是否为管理员，如果是则重定向到admin后台
-    if (userInfo.is_admin === 1) {
-      window.location.href = "/admin"
-      return
-    }
-    
     setAuthToken(token)
     setUserInfo(userInfo)
     
@@ -214,10 +193,19 @@ export default function ProfilePage() {
       }
     }
     
+    // 监听全局余额更新事件
+    const handleBalanceUpdate = () => {
+      if (token) {
+        refreshUserInfo(token)
+      }
+    }
+    
     window.addEventListener('focus', handleFocus)
+    window.addEventListener('balanceUpdated', handleBalanceUpdate)
     
     return () => {
       window.removeEventListener('focus', handleFocus)
+      window.removeEventListener('balanceUpdated', handleBalanceUpdate)
     }
   }, [loadUserData, refreshUserInfo])
 
@@ -233,18 +221,36 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-4">
-      <div className="w-full mx-auto space-y-6 px-4">
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto px-4 py-8 space-y-6">
         {/* 头部导航 */}
         <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold">个人中心</h1>
           <div className="flex items-center space-x-3">
-            <Button variant="outline" size="sm" onClick={() => window.location.href = '/'}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              返回
-            </Button>
-            <h1 className="text-2xl font-bold">个人中心</h1>
+            <Tooltip content="返回主页" side="bottom">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => window.location.href = '/'}
+                className="hover:scale-105 transition-all duration-200"
+              >
+                <Home className="h-4 w-4" />
+              </Button>
+            </Tooltip>
+            {userInfo.is_admin === true && (
+              <Tooltip content="后台管理" side="bottom">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => window.location.href = '/admin'}
+                  className="hover:scale-105 transition-all duration-200"
+                >
+                  <Settings className="h-4 w-4" />
+                </Button>
+              </Tooltip>
+            )}
+            <ThemeToggle />
           </div>
-          <ThemeToggle />
         </div>
 
         {/* 禁用用户警告 */}
@@ -359,103 +365,31 @@ export default function ProfilePage() {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="pl-6 w-32">用户名</TableHead>
-                          <TableHead className="w-32 text-center">Token使用</TableHead>
-                          <TableHead className="w-32 text-center">积分消费</TableHead>
-                          <TableHead className="w-32 text-center">消费金额</TableHead>
-                          <TableHead className="w-44">消费时间</TableHead>
-                          <TableHead className="w-24 text-center">操作</TableHead>
+                          <TableHead className="text-left">对话ID</TableHead>
+                          <TableHead className="text-left">工作流名称</TableHead>
+                          <TableHead className="text-center">Token使用</TableHead>
+                          <TableHead className="text-center">消费金额</TableHead>
+                          <TableHead className="text-left">消费时间</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {consumptionRecords.map((record) => (
                           <TableRow key={record.id}>
-                            <TableCell className="pl-6 font-medium">{record.username}</TableCell>
+                            <TableCell className="text-left font-mono text-sm text-muted-foreground">{record.id}</TableCell>
+                            <TableCell className="text-left font-medium text-primary">
+                              {record.appname || '未知工作流'}
+                            </TableCell>
                             <TableCell className="text-center">
                               <span className="font-mono text-blue-600 dark:text-blue-400 font-semibold">
                                 {(record.token_used || 0).toLocaleString()}
                               </span>
                             </TableCell>
                             <TableCell className="text-center">
-                              <span className="font-mono text-orange-600 dark:text-orange-400 font-semibold">
-                                {(parseFloat(record.points_used?.toString() || '0')).toFixed(4)}
-                              </span>
-                            </TableCell>
-                            <TableCell className="text-center">
                               <span className="font-semibold text-red-600 dark:text-red-400">
-                                ¥{parseFloat(record.cost?.toString() || '0').toFixed(4)}
+                                ¥{(parseFloat(record.cost?.toString() || '0')).toFixed(4)}
                               </span>
                             </TableCell>
-                            <TableCell className="text-sm text-muted-foreground">{formatDate(record.created_at)}</TableCell>
-                            <TableCell className="text-center">
-                              <Dialog>
-                                <DialogTrigger asChild>
-                                  <Button 
-                                    variant="outline" 
-                                    size="sm"
-                                    disabled={detailLoading[record.id]}
-                                    onClick={() => fetchRecordDetail(record.id)}
-                                  >
-                                    {detailLoading[record.id] ? "加载中..." : "详情"}
-                                  </Button>
-                                </DialogTrigger>
-                                <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-                                  <DialogHeader>
-                                    <DialogTitle>消费详情</DialogTitle>
-                                    <DialogDescription>
-                                      消费记录 #{record.id} 的详细信息
-                                    </DialogDescription>
-                                  </DialogHeader>
-                                  {selectedRecord && (
-                                    <div className="space-y-4">
-                                      <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                          <p className="text-sm text-muted-foreground">消费时间</p>
-                                          <p className="font-medium">{formatDate(selectedRecord.created_at)}</p>
-                                        </div>
-                                        <div>
-                                          <p className="text-sm text-muted-foreground">Token使用量</p>
-                                          <p className="font-medium">{selectedRecord.token_used}</p>
-                                        </div>
-                                        <div>
-                                          <p className="text-sm text-muted-foreground">积分消耗</p>
-                                          <p className="font-medium">{selectedRecord.points_used}</p>
-                                        </div>
-                                        <div>
-                                          <p className="text-sm text-muted-foreground">费用</p>
-                                          <p className="font-medium">{parseFloat(selectedRecord.cost?.toString() || '0').toFixed(4)}</p>
-                                        </div>
-                                      </div>
-                                      {selectedRecord.chat_history && selectedRecord.chat_history.length > 0 && (
-                                        <div>
-                                          <p className="text-sm text-muted-foreground mb-2">聊天记录</p>
-                                          <div className="max-h-96 overflow-y-auto border rounded-md p-4 space-y-3">
-                                            {selectedRecord.chat_history.map((message: any, index: number) => (
-                                              <div key={index} className="space-y-1">
-                                                <div className="text-xs text-muted-foreground">
-                                                  {message.role === 'user' ? '用户' : 'AI助手'}
-                                                </div>
-                                                <div className="text-sm bg-muted p-2 rounded">
-                                                  {message.content}
-                                                </div>
-                                              </div>
-                                            ))}
-                                          </div>
-                                        </div>
-                                      )}
-                                      {selectedRecord.response_data && (
-                                        <div>
-                                          <p className="text-sm text-muted-foreground mb-2">响应数据</p>
-                                          <pre className="bg-muted p-3 rounded-md text-xs overflow-x-auto">
-                                            {JSON.stringify(JSON.parse(selectedRecord.response_data), null, 2)}
-                                          </pre>
-                                        </div>
-                                      )}
-                                    </div>
-                                  )}
-                                </DialogContent>
-                              </Dialog>
-                            </TableCell>
+                            <TableCell className="text-left text-sm text-muted-foreground">{formatDate(record.created_at)}</TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
@@ -479,17 +413,17 @@ export default function ProfilePage() {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="pl-6 w-32">用户名</TableHead>
-                          <TableHead className="w-32 text-center">充值金额</TableHead>
-                          <TableHead className="w-32 text-center">充值后余额</TableHead>
-                          <TableHead className="w-44">充值时间</TableHead>
-                          <TableHead className="w-32">备注</TableHead>
+                          <TableHead className="text-left">订单ID</TableHead>
+                          <TableHead className="text-center">充值金额</TableHead>
+                          <TableHead className="text-center">充值后余额</TableHead>
+                          <TableHead className="text-left">充值时间</TableHead>
+                          <TableHead className="text-left">备注</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {rechargeRecords.map((record) => (
                           <TableRow key={record.id}>
-                            <TableCell className="pl-6 font-medium">{record.username}</TableCell>
+                            <TableCell className="text-left font-mono text-sm text-muted-foreground">{record.id}</TableCell>
                             <TableCell className="text-center">
                               <span className="font-semibold text-green-600 dark:text-green-400">
                                 +¥{parseFloat(record.amount?.toString() || '0').toFixed(2)}
@@ -500,8 +434,8 @@ export default function ProfilePage() {
                                 ¥{parseFloat(record.balance_after?.toString() || '0').toFixed(2)}
                               </span>
                             </TableCell>
-                            <TableCell className="text-sm text-muted-foreground">{formatDate(record.created_at)}</TableCell>
-                            <TableCell className="text-sm text-muted-foreground max-w-32 truncate" title={record.remark || '-'}>{record.remark || '-'}</TableCell>
+                            <TableCell className="text-left text-sm text-muted-foreground">{formatDate(record.created_at)}</TableCell>
+                            <TableCell className="text-left text-sm text-muted-foreground max-w-32 truncate" title={record.remark || '-'}>{record.remark || '-'}</TableCell>
                           </TableRow>
                         ))}
                       </TableBody>

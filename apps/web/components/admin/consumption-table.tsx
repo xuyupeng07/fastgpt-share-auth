@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui/components/table"
 import { Button } from "@workspace/ui/components/button"
@@ -15,6 +15,7 @@ interface ConsumptionRecord {
   token_used: number
   points_used: string
   cost: string
+  appname?: string
   question?: string
   response_data?: any[]
   chat_history?: any[]
@@ -34,9 +35,36 @@ export function ConsumptionTable() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const pageSize = 10
 
+  // 防抖hook
+  const useDebounce = (value: string, delay: number) => {
+    const [debouncedValue, setDebouncedValue] = useState(value)
+    
+    useEffect(() => {
+      const handler = setTimeout(() => {
+        setDebouncedValue(value)
+      }, delay)
+      
+      return () => {
+        clearTimeout(handler)
+      }
+    }, [value, delay])
+    
+    return debouncedValue
+  }
+
+  // 防抖搜索值
+  const debouncedSearchId = useDebounce(searchId, 300)
+  const debouncedSearchUsername = useDebounce(searchUsername, 300)
+
   useEffect(() => {
     fetchConsumptionRecords()
   }, [currentPage])
+
+  // 实时搜索效果
+  useEffect(() => {
+    setCurrentPage(1) // 重置到第一页
+    fetchConsumptionRecords()
+  }, [debouncedSearchId, debouncedSearchUsername, searchType])
 
   const fetchConsumptionRecords = async () => {
     try {
@@ -47,11 +75,11 @@ export function ConsumptionTable() {
         limit: pageSize.toString()
       })
       
-      if (searchType === 'id' && searchId) {
-        params.append('id', searchId)
+      if (searchType === 'id' && debouncedSearchId) {
+        params.append('id', debouncedSearchId)
         url = `/api/consumption/all?${params}`
-      } else if (searchType === 'username' && searchUsername) {
-        params.append('username', searchUsername)
+      } else if (searchType === 'username' && debouncedSearchUsername) {
+        params.append('username', debouncedSearchUsername)
         url = `/api/consumption/all?${params}`
       } else {
         url = `/api/consumption/all?${params}`
@@ -104,9 +132,11 @@ export function ConsumptionTable() {
     }
   }
 
-  const handleSearch = () => {
+  // 重置搜索
+  const handleReset = () => {
+    setSearchId('')
+    setSearchUsername('')
     setCurrentPage(1)
-    fetchConsumptionRecords()
   }
 
   const formatDate = (dateString: string) => {
@@ -143,33 +173,27 @@ export function ConsumptionTable() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="username">用户名</SelectItem>
-              <SelectItem value="id">ID</SelectItem>
+              <SelectItem value="id">对话ID</SelectItem>
             </SelectContent>
           </Select>
           {searchType === 'username' ? (
             <Input
-              placeholder="输入用户名搜索消费记录"
+              placeholder="输入用户名实时搜索消费记录"
               value={searchUsername}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchUsername(e.target.value)}
               className="max-w-sm"
             />
           ) : (
             <Input
-              placeholder="输入ID搜索消费记录"
+              placeholder="输入对话ID实时搜索消费记录"
               value={searchId}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchId(e.target.value)}
               className="max-w-sm"
             />
           )}
-          <Button onClick={handleSearch}>搜索</Button>
           <Button 
             variant="outline" 
-            onClick={() => {
-              setSearchId('')
-              setSearchUsername('')
-              setCurrentPage(1)
-              fetchConsumptionRecords()
-            }}
+            onClick={handleReset}
           >
             重置
           </Button>
@@ -179,25 +203,31 @@ export function ConsumptionTable() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="pl-6 w-36">用户名</TableHead>
-                <TableHead className="w-32 text-center">Token使用</TableHead>
-                <TableHead className="w-32 text-center">积分消费</TableHead>
-                <TableHead className="w-32 text-center">消费金额</TableHead>
-                <TableHead className="w-44">时间</TableHead>
-                <TableHead className="w-24 text-center">操作</TableHead>
+                <TableHead className="text-left">对话ID</TableHead>
+                <TableHead className="text-left">用户名</TableHead>
+                <TableHead className="text-left">工作流名称</TableHead>
+                <TableHead className="text-center">Token使用</TableHead>
+                <TableHead className="text-center">积分消费</TableHead>
+                <TableHead className="text-center">消费金额</TableHead>
+                <TableHead className="text-left">时间</TableHead>
+                <TableHead className="text-center">操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {records.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8">
+                  <TableCell colSpan={8} className="text-center py-8">
                     {searchId || searchUsername ? '未找到相关消费记录' : '暂无消费记录'}
                   </TableCell>
                 </TableRow>
               ) : (
                 records.map((record) => (
                   <TableRow key={record.id}>
-                    <TableCell className="pl-6 font-medium">{record.username}</TableCell>
+                    <TableCell className="text-left font-mono text-sm text-muted-foreground">{record.id}</TableCell>
+                    <TableCell className="text-left font-medium">{record.username}</TableCell>
+                    <TableCell className="text-left font-medium text-primary">
+                      {record.appname || '未知工作流'}
+                    </TableCell>
                     <TableCell className="text-center">
                       <span className="font-mono text-blue-600 dark:text-blue-400 font-semibold">
                         {(record.token_used || 0).toLocaleString()}
@@ -213,7 +243,7 @@ export function ConsumptionTable() {
                         ¥{(parseFloat(record.cost) || 0).toFixed(4)}
                       </span>
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
+                    <TableCell className="text-left text-sm text-muted-foreground">
                       {formatDate(record.created_at)}
                     </TableCell>
                     <TableCell className="text-center">
@@ -274,6 +304,10 @@ export function ConsumptionTable() {
               <div>
                 <label className="text-sm font-medium text-muted-foreground">用户名</label>
                 <div className="text-sm">{selectedRecord.username}</div>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">工作流名称</label>
+                <div className="text-sm">{selectedRecord.appname || '未知工作流'}</div>
               </div>
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Token使用</label>

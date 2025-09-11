@@ -6,6 +6,7 @@ import { Button } from "@workspace/ui/components/button"
 import { Input } from "@workspace/ui/components/input"
 import { Label } from "@workspace/ui/components/label"
 import { Badge } from "@workspace/ui/components/badge"
+import { toast } from 'sonner'
 
 interface Config {
   siteName: string
@@ -29,7 +30,7 @@ export function ConfigPanel() {
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [message, setMessage] = useState('')
+
 
   useEffect(() => {
     fetchConfig()
@@ -62,14 +63,13 @@ export function ConfigPanel() {
       })
 
       if (response.ok) {
-        setMessage('配置保存成功')
-        setTimeout(() => setMessage(''), 3000)
+        toast.success('配置保存成功')
       } else {
-        setMessage('配置保存失败')
+        toast.error('配置保存失败')
       }
     } catch (error) {
       console.error('保存配置失败:', error)
-      setMessage('配置保存失败')
+      toast.error('配置保存失败')
     } finally {
       setSaving(false)
     }
@@ -234,13 +234,7 @@ export function ConfigPanel() {
         <Button onClick={handleSave} disabled={saving}>
           {saving ? '保存中...' : '保存配置'}
         </Button>
-        {message && (
-          <div className={`text-sm ${
-            message.includes('成功') ? 'text-green-600' : 'text-red-600'
-          }`}>
-            {message}
-          </div>
-        )}
+
       </div>
     </div>
   )

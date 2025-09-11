@@ -9,6 +9,7 @@ export interface IConsumptionRecord extends Document {
   points_used: number;
   cost: number;
   response_data?: any;
+  appname?: string;
   created_at: Date;
   updated_at: Date;
 }
@@ -44,6 +45,10 @@ const ConsumptionRecordSchema: Schema = new Schema({
   },
   response_data: {
     type: Schema.Types.Mixed,
+    default: null
+  },
+  appname: {
+    type: String,
     default: null
   }
 }, {
