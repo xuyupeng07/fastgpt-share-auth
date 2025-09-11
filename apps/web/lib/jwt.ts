@@ -197,7 +197,7 @@ export function refreshToken(oldToken: string): string | null {
  * @param windowMs 时间窗口（默认1分钟）
  * @returns 是否允许请求
  */
-function checkRateLimit(
+export function checkRateLimit(
   key: string,
   maxRequests: number = parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '10'),
   windowMs: number = parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000')

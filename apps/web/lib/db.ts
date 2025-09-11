@@ -323,6 +323,42 @@ export async function getWorkflowById(id: string | number) {
   }
 }
 
+// 根据no_login_url获取工作流
+export async function getWorkflowByNoLoginUrl(noLoginUrl: string) {
+  try {
+    await ensureConnection();
+    const workflow = await WorkflowModel.findOne({ no_login_url: noLoginUrl }).lean();
+    
+    if (!workflow) return null;
+    
+    return {
+      ...workflow,
+      id: workflow._id.toString() // 确保ID是字符串格式
+    };
+  } catch (error) {
+    console.error('根据no_login_url获取工作流失败:', error);
+    return null;
+  }
+}
+
+// 根据name获取工作流
+export async function getWorkflowByName(name: string) {
+  try {
+    await ensureConnection();
+    const workflow = await WorkflowModel.findOne({ name: name }).lean();
+    
+    if (!workflow) return null;
+    
+    return {
+      ...workflow,
+      id: workflow._id.toString() // 确保ID是字符串格式
+    };
+  } catch (error) {
+    console.error('根据name获取工作流失败:', error);
+    return null;
+  }
+}
+
 // 创建工作流
 export async function createWorkflow(
   name: string,
