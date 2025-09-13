@@ -1,57 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getAllRechargeRecords, getRechargeRecordsByUsername } from '@/lib/db'
-import { ObjectId } from 'mongodb'
-
-interface RechargeRecord {
-  id: ObjectId
-  username: string
-  amount: number
-  points: number
-  created_at: Date
-}
+import { getRechargeRecordsWithPagination } from '@/lib/db'
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const id = searchParams.get('id')
-    const username = searchParams.get('username')
+    const id = searchParams.get('id') || ''
+    const username = searchParams.get('username') || ''
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '10')
     
-    let records
-    if (username) {
-      // 获取特定用户的充值记录
-      records = await getRechargeRecordsByUsername(username)
-    } else {
-      // 获取所有充值记录
-      records = await getAllRechargeRecords()
-    }
-    
-    // 类型断言以处理数据库查询结果
-    const recordsArray = (records as unknown as RechargeRecord[]) || []
-    let filteredRecords = recordsArray
-    
-    // 根据查询条件过滤记录
-    if (id) {
-      // 直接使用字符串比较，支持ObjectId格式的ID搜索
-      filteredRecords = recordsArray.filter((record: RechargeRecord) => 
-        record.id.toString().includes(id)
-      )
-    } else if (username) {
-      filteredRecords = recordsArray.filter((record: RechargeRecord) => 
-        record.username && record.username.toLowerCase().includes(username.toLowerCase())
-      )
-    }
-    
-    // 实现分页
-    const offset = (page - 1) * limit
-    const paginatedRecords = filteredRecords.slice(offset, offset + limit)
+    // 使用新的分页函数
+    const { records, total } = await getRechargeRecordsWithPagination({
+      page,
+      limit,
+      searchUserId: id,
+      searchUsername: username
+    });
     
     return NextResponse.json({
       success: true,
       data: {
-        records: paginatedRecords,
-        total: filteredRecords.length,
+        records: records,
+        total: total,
         page: page,
         limit: limit
       }

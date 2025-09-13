@@ -7,6 +7,7 @@ import { Input } from "@workspace/ui/components/input"
 import { Label } from "@workspace/ui/components/label"
 import { Badge } from "@workspace/ui/components/badge"
 import { toast } from 'sonner'
+import { AuthUtils } from '@/lib/auth'
 
 interface Config {
   siteName: string
@@ -54,10 +55,18 @@ export function ConfigPanel() {
   const handleSave = async () => {
     try {
       setSaving(true)
+      const token = AuthUtils.getToken()
+      if (!token) {
+        toast.error('未登录，请先登录')
+        setSaving(false)
+        return
+      }
+
       const response = await fetch('/api/config', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(config)
       })

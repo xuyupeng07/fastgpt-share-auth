@@ -54,19 +54,17 @@ export function LoginForm({ onSuccess, onRegisterClick }: LoginFormProps = {}) {
       const data = await response.json()
       
       if (data.success) {
-        showAlert("登录成功！正在跳转...", "success")
+        showAlert("登录成功！", "success")
         
         // 使用统一的认证工具处理登录成功
         AuthUtils.handleLoginSuccess(data.data.token, data.data.user)
         
-        // 调用成功回调
-        setTimeout(() => {
-          if (onSuccess) {
-            onSuccess()
-          } else {
-            window.location.href = '/'
-          }
-        }, 1000)
+        // 立即调用成功回调
+        if (onSuccess) {
+          onSuccess()
+        } else {
+          window.location.href = '/'
+        }
       } else {
         showAlert(data.message || "登录失败")
       }

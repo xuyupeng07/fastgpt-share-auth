@@ -24,6 +24,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@workspace/ui/componen
 import { Plus, Edit, Trash2, AlertCircle } from 'lucide-react'
 import { useStats } from '@/contexts/stats-context'
 import { toast } from 'sonner'
+import { AuthUtils } from '@/lib/auth'
 
 // 分类接口类型
 interface Category {
@@ -58,12 +59,15 @@ export function CategoriesTable() {
   })
 
   const [submitting, setSubmitting] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const pageSize = 20
 
   // 加载分类列表
   const loadCategories = async () => {
     try {
       setLoading(true)
-      const token = localStorage.getItem('authToken')
+      const token = AuthUtils.getToken()
       const response = await fetch('/api/admin/categories', {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -73,7 +77,18 @@ export function CategoriesTable() {
       
       if (response.ok) {
         const data = await response.json()
-        setCategories(data)
+        const allCategories = data || []
+        
+        // 计算分页
+        const total = allCategories.length
+        setTotalPages(Math.ceil(total / pageSize))
+        
+        // 获取当前页的数据
+        const startIndex = (currentPage - 1) * pageSize
+        const endIndex = startIndex + pageSize
+        const paginatedCategories = allCategories.slice(startIndex, endIndex)
+        
+        setCategories(paginatedCategories)
       } else {
         const errorData = await response.json()
         toast.error(errorData.error || '获取分类列表失败')
@@ -139,7 +154,7 @@ export function CategoriesTable() {
 
     try {
       setSubmitting(true)
-      const token = localStorage.getItem('authToken')
+      const token = AuthUtils.getToken()
       const url = '/api/admin/categories'
       const method = isEdit ? 'PUT' : 'POST'
       const body = isEdit ? 
@@ -178,7 +193,7 @@ export function CategoriesTable() {
 
     try {
       setSubmitting(true)
-      const token = localStorage.getItem('authToken')
+      const token = AuthUtils.getToken()
       const response = await fetch(`/api/admin/categories?id=${selectedCategory.id}`, {
         method: 'DELETE',
         headers: {
@@ -211,18 +226,9 @@ export function CategoriesTable() {
 
   useEffect(() => {
     loadCategories()
-  }, [])
+  }, [currentPage])
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
-          <p>加载中...</p>
-        </div>
-      </div>
-    )
-  }
+  // 不再提前返回加载状态，而是在Card内部处理
 
   return (
     <Card>
@@ -236,30 +242,36 @@ export function CategoriesTable() {
         </div>
       </CardHeader>
       <CardContent>
-
-
-        {/* 分类表格 */}
         <div className="border rounded-lg">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="pl-6 w-48">分类名称</TableHead>
-              <TableHead className="w-24 text-center">排序</TableHead>
-              <TableHead className="w-24 text-center">状态</TableHead>
-              <TableHead className="w-44">创建时间</TableHead>
-              <TableHead className="w-44">更新时间</TableHead>
-              <TableHead className="w-32 text-center">操作</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {categories.length === 0 ? (
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                  暂无分类数据
-                </TableCell>
+                <TableHead className="pl-6 w-48">分类名称</TableHead>
+                <TableHead className="w-24 text-center">排序</TableHead>
+                <TableHead className="w-24 text-center">状态</TableHead>
+                <TableHead className="w-44">创建时间</TableHead>
+                <TableHead className="w-44">更新时间</TableHead>
+                <TableHead className="w-32 text-center">操作</TableHead>
               </TableRow>
-            ) : (
-              categories.map((category) => (
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="h-[400px]">
+                    <div className="flex flex-col items-center justify-center h-full">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
+                      <p className="text-muted-foreground">加载中...</p>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : categories.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                    暂无分类数据
+                  </TableCell>
+                </TableRow>
+              ) : (
+                categories.map((category) => (
                 <TableRow key={category.id}>
                   <TableCell className="pl-6 font-medium">{category.name}</TableCell>
                   <TableCell className="text-center">{category.sort_order}</TableCell>
@@ -267,7 +279,7 @@ export function CategoriesTable() {
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                       category.status === 'active' 
                         ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' 
-                        : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'
+                        : 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
                     }`}>
                       {category.status === 'active' ? '启用' : '禁用'}
                     </span>
@@ -294,11 +306,38 @@ export function CategoriesTable() {
                     </div>
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              )))
+}
+            </TableBody>
+          </Table>
         </div>
+        
+        {/* 分页控件 */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-6 py-4 border-t">
+            <div className="text-sm text-muted-foreground">
+              第 {currentPage} 页，共 {totalPages} 页
+            </div>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1 || loading}
+              >
+                上一页
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages || loading}
+              >
+                下一页
+              </Button>
+            </div>
+          </div>
+        )}
       </CardContent>
 
       {/* 创建分类对话框 */}
@@ -413,7 +452,7 @@ export function CategoriesTable() {
           <DialogHeader>
             <DialogTitle>确认删除</DialogTitle>
             <DialogDescription>
-              确定要删除分类 "{selectedCategory?.name}" 吗？此操作不可撤销。
+              确定要删除分类 &quot;{selectedCategory?.name}&quot; 吗？此操作不可撤销。
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

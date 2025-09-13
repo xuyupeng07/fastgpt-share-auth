@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { AuthUtils } from '@/lib/auth'
 
 interface UserInfo {
   id: string
@@ -36,9 +37,8 @@ export function useAdminAuth() {
     try {
       setAuthState(prev => ({ ...prev, isLoading: true, error: null }))
       
-      // 从localStorage或cookie获取token
-      const token = localStorage.getItem('authToken') || 
-                   document.cookie.split('; ').find(row => row.startsWith('authToken='))?.split('=')[1]
+      // 使用AuthUtils获取token
+      const token = AuthUtils.getToken()
       
       if (!token) {
         setAuthState({
@@ -74,9 +74,7 @@ export function useAdminAuth() {
               error: '账户已被禁用，请联系管理员'
             })
             // 清除登录状态
-            localStorage.removeItem('authToken')
-            localStorage.removeItem('userInfo')
-            document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+            AuthUtils.handleLogout()
             router.push('/login?disabled=true')
             return
           }
@@ -115,9 +113,7 @@ export function useAdminAuth() {
           user: null,
           error: 'token已过期，请重新登录'
         })
-        localStorage.removeItem('authToken')
-        localStorage.removeItem('userInfo')
-        document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+        AuthUtils.handleLogout()
         router.push('/login')
       } else if (response.status === 403) {
         // 账户被禁用
@@ -128,9 +124,7 @@ export function useAdminAuth() {
           user: null,
           error: '账户已被禁用，请联系管理员'
         })
-        localStorage.removeItem('authToken')
-        localStorage.removeItem('userInfo')
-        document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+        AuthUtils.handleLogout()
         router.push('/login?disabled=true')
       } else {
         throw new Error('验证失败')
@@ -152,9 +146,7 @@ export function useAdminAuth() {
   }, [checkAdminAuth])
 
   const logout = useCallback(() => {
-    localStorage.removeItem('authToken')
-    localStorage.removeItem('userInfo')
-    document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+    AuthUtils.handleLogout()
     setAuthState({
       isLoading: false,
       isAuthenticated: false,

@@ -1,3 +1,7 @@
+interface WorkflowConfig {
+  [key: string]: unknown;
+}
+
 export interface Workflow {
   id: string
   name: string
@@ -5,7 +9,7 @@ export interface Workflow {
   logo?: string
   avatar?: string // base64格式的工作流头像
   isVip?: boolean
-  config?: any
+  config?: WorkflowConfig
   demo_url?: string
   author: {
     name: string

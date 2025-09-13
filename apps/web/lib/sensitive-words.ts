@@ -39,7 +39,7 @@ export async function getSensitiveWords(): Promise<string[]> {
     const words = await SensitiveWordModel.find({}, 'word').lean().exec()
     
     // 更新缓存
-    cachedSensitiveWords = words.map((item: any) => item.word)
+    cachedSensitiveWords = words.map((item: { word: string }) => item.word)
     lastCacheUpdate = now
     
     return cachedSensitiveWords

@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
     console.error('创建分类失败:', error);
     
     // 处理重复名称错误
-    if (error && typeof error === 'object' && 'code' in error && (error as any).code === 11000) {
+    if (error && typeof error === 'object' && 'code' in error && (error as { code: number }).code === 11000) {
       return NextResponse.json(
         { error: '分类名称已存在' },
         { status: 400 }

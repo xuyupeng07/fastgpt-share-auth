@@ -42,11 +42,12 @@ const DropdownMenuTrigger = React.forwardRef<
   }
 >(({ className, children, asChild = false, onClick, ...props }, ref) => {
   if (asChild) {
-    return React.cloneElement(children as any, {
-      className: cn((children as any).props.className, className),
+    const childElement = children as React.ReactElement<React.HTMLAttributes<HTMLElement> & { [key: string]: any }>
+    return React.cloneElement(childElement, {
+      className: cn(childElement.props.className, className),
       'data-dropdown-trigger': 'true',
-      onClick: (e: any) => {
-        (children as any).props.onClick?.(e)
+      onClick: (e: React.MouseEvent<any>) => {
+        childElement.props.onClick?.(e)
         onClick?.(e)
       },
       ref

@@ -2,12 +2,14 @@
 
 import React, { useState, useRef } from 'react'
 import { Button } from './ui/button'
-import { User, LogOut, Settings, Upload, Camera, Sun, Moon, Home } from 'lucide-react'
+import { User, LogOut, Settings, Upload, Camera, Sun, Moon, Home, Cog, ArrowLeft, Database } from 'lucide-react'
 import { Tooltip } from './ui/tooltip'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTheme } from 'next-themes'
 import { toast } from 'sonner'
+import { usePathname } from 'next/navigation'
+import { AuthUtils } from '@/lib/auth'
 
 interface UserInfo {
   id: string
@@ -21,17 +23,19 @@ interface UserDropdownProps {
   userInfo: UserInfo
   onLogout: () => void
   onAvatarUpdate?: (avatar: string) => void
-  hideMenuItems?: ('profile' | 'admin')[]
+  hideMenuItems?: ('profile' | 'admin' | 'settings')[]
   showHomeButton?: boolean
+  showBackToAdmin?: boolean
 }
 
-export function UserDropdown({ userInfo, onLogout, onAvatarUpdate, hideMenuItems = [], showHomeButton = false }: UserDropdownProps) {
+export function UserDropdown({ userInfo, onLogout, onAvatarUpdate, hideMenuItems = [], showHomeButton = false, showBackToAdmin = false }: UserDropdownProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [avatarKey, setAvatarKey] = useState(Date.now()) // 用于强制刷新头像
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { theme, setTheme } = useTheme()
+  const pathname = usePathname()
 
   // 避免水合不匹配
   React.useEffect(() => {
@@ -63,12 +67,8 @@ export function UserDropdown({ userInfo, onLogout, onAvatarUpdate, hideMenuItems
       reader.onload = async (e) => {
         const base64 = e.target?.result as string
         
-        // 获取cookie中的authToken
-        const getAuthToken = () => {
-          return document.cookie.split('; ').find(row => row.startsWith('authToken='))?.split('=')[1] || null
-        }
-        
-        const authToken = getAuthToken()
+        // 使用AuthUtils获取token
+        const authToken = AuthUtils.getToken()
         if (!authToken) {
           toast.error('请先登录')
           setIsUploading(false)
@@ -160,7 +160,7 @@ export function UserDropdown({ userInfo, onLogout, onAvatarUpdate, hideMenuItems
             </span>
           </div>
           <div className="text-xs font-medium text-primary">
-            积分余额: {(userInfo.balance || 0).toFixed(2)} Credits
+            积分余额{': '}{(userInfo.balance || 0).toFixed(2)} Credits
           </div>
         </div>
       </div>
@@ -178,6 +178,22 @@ export function UserDropdown({ userInfo, onLogout, onAvatarUpdate, hideMenuItems
             onMouseLeave={() => setIsOpen(false)}
           >
             <div className="p-2 space-y-1">
+              {/* 返回后台 */}
+              {showBackToAdmin && pathname !== '/admin/settings' && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start hover:bg-muted"
+                  onClick={() => {
+                    window.location.href = '/admin'
+                    setIsOpen(false)
+                  }}
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  返回后台
+                </Button>
+              )}
+
               {/* 回到首页 */}
               {showHomeButton && (
                 <Button
@@ -211,7 +227,7 @@ export function UserDropdown({ userInfo, onLogout, onAvatarUpdate, hideMenuItems
               )}
 
               {/* 后台管理 (仅管理员可见) */}
-              {userInfo.is_admin && !hideMenuItems.includes('admin') && (
+              {userInfo.is_admin && !hideMenuItems.includes('admin') && pathname !== '/admin' && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -221,10 +237,28 @@ export function UserDropdown({ userInfo, onLogout, onAvatarUpdate, hideMenuItems
                     setIsOpen(false)
                   }}
                 >
-                  <Settings className="h-4 w-4 mr-2" />
+                  <Database  className="h-4 w-4 mr-2" />
                   后台管理
                 </Button>
               )}
+
+                            {/* 系统设置 (仅管理员可见) */}
+              {userInfo.is_admin && !hideMenuItems.includes('admin') && pathname !== '/admin/settings' && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start hover:bg-muted"
+                  onClick={() => {
+                    window.location.href = '/admin/settings'
+                    setIsOpen(false)
+                  }}
+                >
+                  <Cog className="h-4 w-4 mr-2" />
+                  系统设置
+                </Button>
+              )}
+
+
 
               {/* 主题切换 */}
               {mounted && (

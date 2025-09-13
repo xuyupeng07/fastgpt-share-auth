@@ -8,6 +8,17 @@ import { Input } from "@workspace/ui/components/input"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@workspace/ui/components/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui/components/select"
 
+interface ResponseDataItem {
+  [key: string]: unknown;
+}
+
+interface ChatMessage {
+  role: string;
+  content: string;
+  timestamp?: string;
+  [key: string]: unknown;
+}
+
 interface ConsumptionRecord {
   id: number
   user_id: number
@@ -17,8 +28,8 @@ interface ConsumptionRecord {
   cost: string
   appname?: string
   question?: string
-  response_data?: any[]
-  chat_history?: any[]
+  response_data?: ResponseDataItem[]
+  chat_history?: ChatMessage[]
   created_at: string
 }
 
@@ -30,7 +41,7 @@ export function ConsumptionTable() {
   const [searchId, setSearchId] = useState('')
   const [searchUsername, setSearchUsername] = useState('')
   const [searchType, setSearchType] = useState<'id' | 'username'>('username')
-  const [selectedRecord, setSelectedRecord] = useState<any>(null)
+  const [selectedRecord, setSelectedRecord] = useState<ConsumptionRecord | null>(null)
   const [detailLoading, setDetailLoading] = useState<{[key: number]: boolean}>({})
   const [dialogOpen, setDialogOpen] = useState(false)
   const pageSize = 10
@@ -56,17 +67,7 @@ export function ConsumptionTable() {
   const debouncedSearchId = useDebounce(searchId, 300)
   const debouncedSearchUsername = useDebounce(searchUsername, 300)
 
-  useEffect(() => {
-    fetchConsumptionRecords()
-  }, [currentPage])
-
-  // 实时搜索效果
-  useEffect(() => {
-    setCurrentPage(1) // 重置到第一页
-    fetchConsumptionRecords()
-  }, [debouncedSearchId, debouncedSearchUsername, searchType])
-
-  const fetchConsumptionRecords = async () => {
+  const fetchConsumptionRecords = useCallback(async () => {
     try {
       setLoading(true)
       let url = '/api/consumption/all'
@@ -110,7 +111,17 @@ export function ConsumptionTable() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [currentPage, pageSize, debouncedSearchId, debouncedSearchUsername, searchType])
+
+  // 初始加载和分页变化时获取数据
+  useEffect(() => {
+    fetchConsumptionRecords()
+  }, [currentPage, debouncedSearchId, debouncedSearchUsername, searchType])
+
+  // 搜索时重置到第一页
+  useEffect(() => {
+    setCurrentPage(1) // 重置到第一页
+  }, [debouncedSearchId, debouncedSearchUsername, searchType])
 
   const fetchRecordDetail = async (recordId: number) => {
     try {
@@ -145,18 +156,7 @@ export function ConsumptionTable() {
 
 
 
-  if (loading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>消费记录</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8">加载中...</div>
-        </CardContent>
-      </Card>
-    )
-  }
+
 
   return (
     <>
@@ -214,9 +214,18 @@ export function ConsumptionTable() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {records.length === 0 ? (
+              {loading ? (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center py-8">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900"></div>
+                      <span className="text-sm text-muted-foreground">加载中...</span>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : records.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                     {searchId || searchUsername ? '未找到相关消费记录' : '暂无消费记录'}
                   </TableCell>
                 </TableRow>
@@ -331,7 +340,7 @@ export function ConsumptionTable() {
               <div>
                 <label className="text-sm font-medium text-muted-foreground mb-2 block">聊天记录</label>
                 <div className="max-h-96 overflow-y-auto border rounded-md p-4 space-y-3">
-                  {selectedRecord.chat_history.map((message: any, index: number) => (
+                  {selectedRecord.chat_history.map((message: ChatMessage, index: number) => (
                     <div key={index} className="space-y-1">
                       <div className="text-xs text-muted-foreground">
                         {message.role === 'user' ? '用户' : 'AI助手'}

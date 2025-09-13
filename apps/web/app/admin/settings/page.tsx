@@ -7,11 +7,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@work
 import { Badge } from "@workspace/ui/components/badge"
 import { Textarea } from "@workspace/ui/components/textarea"
 import { Separator } from "@workspace/ui/components/separator"
-import { ArrowLeft, Plus, X, Save, Trash2 } from "lucide-react"
+import { ArrowLeft, Plus, X, Trash2 } from "lucide-react"
 import { useAdminAuth } from "@/hooks/useAdminAuth"
 import { AccessDenied, AdminAuthLoading } from "@/components/admin/access-denied"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { UserDropdown } from "@/components/UserDropdown"
 import { toast, Toaster } from "sonner"
+import { AuthUtils } from "@/lib/auth"
 
 interface SensitiveWord {
   id?: number
@@ -21,7 +23,7 @@ interface SensitiveWord {
 }
 
 export default function AdminSettingsPage() {
-  const { isLoading, isAuthenticated, isAdmin, user, error } = useAdminAuth()
+  const { isLoading, isAuthenticated, isAdmin, user, error, logout } = useAdminAuth()
   const [sensitiveWords, setSensitiveWords] = useState<SensitiveWord[]>([])
   const [newWord, setNewWord] = useState('')
   const [newCategory, setNewCategory] = useState('默认')
@@ -32,7 +34,7 @@ export default function AdminSettingsPage() {
   const fetchSensitiveWords = async () => {
     try {
       setIsLoadingWords(true)
-      const token = localStorage.getItem('authToken')
+      const token = AuthUtils.getToken()
       if (!token) {
         toast.error('请先登录')
         return
@@ -77,7 +79,7 @@ export default function AdminSettingsPage() {
 
     try {
       setIsSaving(true)
-      const token = localStorage.getItem('authToken')
+      const token = AuthUtils.getToken()
       if (!token) {
         toast.error('请先登录')
         return
@@ -145,52 +147,12 @@ export default function AdminSettingsPage() {
     }
   }
 
-  // 编辑敏感词
-  const handleEditWord = async (id: number, newWord: string, newCategory: string) => {
-    if (!newWord.trim() || !newCategory.trim()) {
-      toast.error('请填写敏感词和分类')
-      return
-    }
-
-    try {
-      const token = localStorage.getItem('authToken')
-      if (!token) {
-        toast.error('请先登录')
-        return
-      }
-      
-      const response = await fetch(`/api/admin/sensitive-words?id=${id}`, {
-        method: 'PUT',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ word: newWord.trim(), category: newCategory.trim() })
-      })
-      
-      const data = await response.json()
-      if (data.success) {
-        setSensitiveWords(prev => 
-          prev.map(word => 
-            word.id === id 
-              ? { ...word, word: newWord.trim(), category: newCategory.trim() }
-              : word
-          )
-        )
-        toast.success('敏感词更新成功')
-      } else {
-        toast.error(data.error || '更新敏感词失败')
-      }
-    } catch (error) {
-      console.error('更新敏感词失败:', error)
-      toast.error('更新敏感词失败')
-    }
-  }
+  // Removed unused handleEditWord function
 
   // 删除敏感词
   const deleteSensitiveWord = async (id: number) => {
     try {
-      const token = localStorage.getItem('authToken')
+      const token = AuthUtils.getToken()
       if (!token) {
         toast.error('请先登录')
         return
@@ -235,7 +197,7 @@ export default function AdminSettingsPage() {
     try {
       await confirmClear()
       
-      const token = localStorage.getItem('authToken')
+      const token = AuthUtils.getToken()
       if (!token) {
         toast.error('请先登录')
         return
@@ -273,9 +235,9 @@ export default function AdminSettingsPage() {
       } else {
         toast.error('清空失败')
       }
-    } catch (cancelError: any) {
+    } catch (cancelError: unknown) {
       // 用户取消操作，不显示错误信息
-      if (cancelError.message !== '用户取消操作') {
+      if (cancelError instanceof Error && cancelError.message !== '用户取消操作') {
         console.error('清空敏感词失败:', cancelError)
         toast.error('清空敏感词失败')
       }
@@ -311,23 +273,22 @@ export default function AdminSettingsPage() {
       <header className="border-b">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center gap-4">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => window.location.href = '/admin'}
-              className="flex items-center gap-2"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              返回后台
-            </Button>
             <h1 className="text-2xl font-bold">系统设置</h1>
           </div>
           
           <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-600 dark:text-gray-400">
-              管理员: {user?.username}
-            </span>
-            <ThemeToggle />
+            {user && (
+              <UserDropdown 
+                 userInfo={user} 
+                 onLogout={logout}
+                 onAvatarUpdate={() => {
+                   // 系统设置页面不需要头像更新功能，但保持接口一致性
+                 }}
+                 hideMenuItems={['settings']}
+                 showHomeButton={true}
+                 showBackToAdmin={true}
+               />
+            )}
           </div>
         </div>
       </header>

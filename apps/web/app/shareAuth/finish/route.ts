@@ -4,7 +4,21 @@ import { updateUserBalanceById, addConsumptionRecord, getUserById, getWorkflowBy
 import { validateToken, checkRateLimit } from "@/lib/jwt";
 
 // 请求去重存储（简单的内存存储，生产环境建议使用Redis）
-const requestCache = new Map<string, { timestamp: number; response: any }>();
+interface CacheResponse {
+  success: boolean;
+  message: string;
+  balanceUpdated?: boolean;
+  data?: {
+    cost: number;
+    balance: number;
+    tokens: number;
+    points: number;
+    originalPoints: number;
+    pointMultiplier: number;
+  };
+}
+
+const requestCache = new Map<string, { timestamp: number; response: CacheResponse }>();
 const CACHE_DURATION = 3000; // 3秒内的重复请求将被去重
 
 export async function POST(request: NextRequest) {

@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card"
 import { Button } from "@workspace/ui/components/button"
-import { AlertTriangle, Home, LogIn, Shield } from "lucide-react"
+import { AlertTriangle, Home, LogIn } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 interface AccessDeniedProps {
@@ -33,7 +33,7 @@ export function AccessDenied({
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/20">
-            <Shield className="h-8 w-8 text-red-600 dark:text-red-400" />
+            <AlertTriangle className="h-8 w-8 text-red-600 dark:text-red-400" />
           </div>
           <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">
             {title}

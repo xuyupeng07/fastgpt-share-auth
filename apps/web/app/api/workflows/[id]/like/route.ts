@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getWorkflowById } from '@/lib/db';
 import WorkflowModel from '@/lib/models/Workflow';
 import connectDB from '@/lib/mongodb';

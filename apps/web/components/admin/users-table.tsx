@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui/components/table"
 import { Badge } from "@workspace/ui/components/badge"
@@ -14,6 +14,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { MoreHorizontal, Edit, Trash2, Key, Mail, Shield, ShieldOff, UserCheck, UserX, Plus } from "lucide-react"
 import { useStats } from "@/contexts/stats-context"
 import { toast } from "sonner"
+import { AuthUtils } from "@/lib/auth"
 
 
 interface User {
@@ -81,26 +82,7 @@ export function UsersTable() {
     is_admin: false
   })
 
-
-  useEffect(() => {
-    fetchUsers()
-  }, [currentPage])
-  
-  // 实时搜索效果
-  useEffect(() => {
-    if (searchType === 'id' && debouncedSearchId !== '') {
-      setCurrentPage(1)
-      fetchUsers()
-    } else if (searchType === 'username' && debouncedSearchUsername !== '') {
-      setCurrentPage(1)
-      fetchUsers()
-    } else if (debouncedSearchId === '' && debouncedSearchUsername === '') {
-      setCurrentPage(1)
-      fetchUsers()
-    }
-  }, [debouncedSearchId, debouncedSearchUsername, searchType])
-
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       setLoading(true)
       let url = `/api/users?page=${currentPage}&limit=${pageSize}`
@@ -124,14 +106,36 @@ export function UsersTable() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [currentPage, pageSize, debouncedSearchId, debouncedSearchUsername, searchType])
+
+  useEffect(() => {
+    fetchUsers()
+  }, [currentPage, debouncedSearchId, debouncedSearchUsername, searchType])
+  
+  // 搜索时重置到第一页
+  useEffect(() => {
+    if (searchType === 'id' && debouncedSearchId !== '') {
+      setCurrentPage(1)
+    } else if (searchType === 'username' && debouncedSearchUsername !== '') {
+      setCurrentPage(1)
+    } else if (debouncedSearchId === '' && debouncedSearchUsername === '') {
+      setCurrentPage(1)
+    }
+  }, [debouncedSearchId, debouncedSearchUsername, searchType])
 
   const handleStatusChange = async (userId: string, newStatus: 'active' | 'inactive') => {
     try {
+      const token = AuthUtils.getToken()
+      if (!token) {
+        toast.error('未登录，请先登录')
+        return
+      }
+
       const response = await fetch('/api/users/status', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({ userId, status: newStatus }),
       })
@@ -210,10 +214,17 @@ export function UsersTable() {
     }
     
     try {
+      const token = AuthUtils.getToken()
+      if (!token) {
+        toast.error('未登录，请先登录')
+        return
+      }
+
       const response = await fetch('/api/users/email', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({ userId: selectedUser.id, email: newEmail }),
       })
@@ -239,9 +250,16 @@ export function UsersTable() {
   // 设置管理员权限
   const handleAdminChange = async (userId: string, isAdmin: boolean) => {
     try {
+      const token = AuthUtils.getToken()
+      if (!token) {
+        toast.error('未登录，请先登录')
+        return
+      }
+
       const response = await fetch('/api/users/admin', {
         method: 'PUT',
         headers: {
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ userId, is_admin: isAdmin }),
@@ -285,10 +303,17 @@ export function UsersTable() {
        await confirmDelete()
        
        try {
+      const token = AuthUtils.getToken()
+      if (!token) {
+        toast.error('未登录，请先登录')
+        return
+      }
+
       const response = await fetch('/api/users/delete', {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({ userId }),
       })
@@ -305,9 +330,9 @@ export function UsersTable() {
           console.error('删除用户失败:', error)
           toast.error('删除用户失败，请稍后重试')
         }
-    } catch (cancelError: any) {
+    } catch (cancelError: unknown) {
        // 用户取消操作，不显示错误信息
-       if (cancelError.message !== '用户取消操作') {
+       if (cancelError instanceof Error && cancelError.message !== '用户取消操作') {
          toast.error('删除用户失败，请稍后重试')
        }
      }
@@ -361,10 +386,17 @@ export function UsersTable() {
     }
 
     try {
+      // 获取认证token
+      const token = AuthUtils.getToken()
+      if (!token) {
+        throw new Error('未登录，请先登录')
+      }
+
       const response = await fetch('/api/users/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           username: newUserData.username,
@@ -395,18 +427,7 @@ export function UsersTable() {
 
 
 
-  if (loading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>用户管理</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8">加载中...</div>
-        </CardContent>
-      </Card>
-    )
-  }
+
 
   return (
     <Card>
@@ -568,9 +589,18 @@ export function UsersTable() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {users.length === 0 ? (
+              {loading ? (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center py-8">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900"></div>
+                      <span className="text-sm text-muted-foreground">加载中...</span>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : users.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                     暂无用户数据
                   </TableCell>
                 </TableRow>

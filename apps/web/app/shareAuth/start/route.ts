@@ -4,7 +4,21 @@ import { validateToken, checkRateLimit } from "@/lib/jwt";
 import { containsSensitiveWords } from "@/lib/sensitive-words";
 
 // 请求去重存储（简单的内存存储，生产环境建议使用Redis）
-const requestCache = new Map<string, { timestamp: number; response: any }>();
+interface StartCacheResponse {
+  success: boolean;
+  message?: string;
+  data?: {
+    workflow_url?: string;
+    user?: {
+      id: string;
+      username: string;
+      [key: string]: unknown;
+    };
+    [key: string]: unknown;
+  };
+}
+
+const requestCache = new Map<string, { timestamp: number; response: StartCacheResponse }>();
 const CACHE_DURATION = 3000; // 3秒内的重复请求将被去重
 
 export async function POST(request: NextRequest) {

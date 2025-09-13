@@ -8,9 +8,7 @@ import { StatsProvider } from "@/contexts/stats-context"
 import { UserDropdown } from "@/components/UserDropdown"
 import { useAdminAuth } from "@/hooks/useAdminAuth"
 import { AccessDenied, AdminAuthLoading } from "@/components/admin/access-denied"
-import { Button } from "@workspace/ui/components/button"
-import { LogOut, User, Home, Settings } from "lucide-react"
-import { Tooltip } from "@/components/ui/tooltip"
+// Removed unused imports: Button, LogOut, User, Home, Settings, Tooltip
 
 export default function AdminPage() {
   const { isLoading, isAuthenticated, isAdmin, user, error, logout } = useAdminAuth()
@@ -63,7 +61,7 @@ export default function AdminPage() {
                   onAvatarUpdate={() => {
                     // 管理员页面不需要头像更新功能，但保持接口一致性
                   }}
-                  hideMenuItems={['admin']}
+                  hideMenuItems={[]}
                   showHomeButton={true}
                 />
               )}

@@ -3,7 +3,21 @@ import { authenticateUser, getWorkflowByNoLoginUrl } from "@/lib/db";
 import { generateSecureToken, validateToken, checkRateLimit } from "@/lib/jwt";
 
 // 请求去重存储（简单的内存存储，生产环境建议使用Redis）
-const requestCache = new Map<string, { timestamp: number; response: any }>();
+interface InitCacheResponse {
+  success: boolean;
+  message?: string;
+  data?: {
+    token?: string;
+    workflow?: {
+      id: string;
+      name: string;
+      [key: string]: unknown;
+    };
+    [key: string]: unknown;
+  };
+}
+
+const requestCache = new Map<string, { timestamp: number; response: InitCacheResponse }>();
 const CACHE_DURATION = 5000; // 5秒内的重复请求将被去重
 
 export async function POST(request: NextRequest) {

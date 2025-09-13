@@ -48,7 +48,7 @@ const Tooltip = ({
   const getArrowClasses = () => {
     if (anchorRef && anchorRef.current && (side === 'top' || side === 'bottom')) {
       // 当有anchorRef时，计算尖刺相对于卡片中心的位置
-      const triggerRect = children && (children as any).ref?.current?.getBoundingClientRect()
+      const triggerRect = children && React.isValidElement(children) && (children as unknown as { ref?: { current?: { getBoundingClientRect?: () => DOMRect } } }).ref?.current?.getBoundingClientRect?.()
       const anchorRect = anchorRef.current.getBoundingClientRect()
       
       if (triggerRect && anchorRect) {

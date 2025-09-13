@@ -146,19 +146,14 @@ export default function HomePage() {
       } else if (response.status === 403) {
         // 用户账户被禁用，立即清除登录态并重定向到登录页
         console.log('Account disabled, logging out and redirecting to login')
-        localStorage.removeItem('authToken')
-        localStorage.removeItem('userInfo')
-        sessionStorage.clear()
-        // 清除cookie
-        document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+        // 清除登录状态
+        AuthUtils.handleLogout()
         setShowLoginDialog(true)
         return
       } else if (response.status === 401) {
         // token无效，跳转到登录页
-        localStorage.removeItem('authToken')
-        localStorage.removeItem('userInfo')
-        // 清除cookie
-        document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+        // 清除登录状态
+        AuthUtils.handleLogout()
         setShowLoginDialog(true)
       }
     } catch (error) {
@@ -196,7 +191,7 @@ export default function HomePage() {
     const initializePage = async () => {
       try {
         // 检查登录状态
-        const token = localStorage.getItem("authToken")
+        const token = AuthUtils.getToken()
         const user = localStorage.getItem("userInfo")
         
         if (token && user) {
@@ -312,7 +307,7 @@ export default function HomePage() {
 
   // 登录成功后的回调函数
   const handleLoginSuccess = async () => {
-    const token = localStorage.getItem("authToken")
+    const token = AuthUtils.getToken()
     const user = localStorage.getItem("userInfo")
     
     if (token && user) {
@@ -347,7 +342,7 @@ export default function HomePage() {
         onLogin={handleLogin}
         onLogout={handleLogout}
         onRefreshUserInfo={() => {
-          const token = localStorage.getItem('authToken')
+          const token = AuthUtils.getToken()
           if (token) {
             refreshUserInfo(token)
           }

@@ -2,6 +2,18 @@
 
 import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect, useRef } from 'react'
 
+interface ApiUser {
+  balance: string | number;
+  [key: string]: unknown;
+}
+
+interface ApiConsumptionRecord {
+  cost?: string | number;
+  points_used?: string | number;
+  created_at: string;
+  [key: string]: unknown;
+}
+
 interface Stats {
   totalUsers: number
   totalBalance: number
@@ -42,8 +54,8 @@ export function StatsProvider({ children }: { children: ReactNode }) {
         const usersData = await usersResponse.json()
         if (usersData.success && usersData.users) {
           totalUsers = usersData.users.length
-          totalBalance = usersData.users.reduce((sum: number, user: any) => {
-            return sum + parseFloat(user.balance || 0)
+          totalBalance = usersData.users.reduce((sum: number, user: ApiUser) => {
+             return sum + parseFloat(String(user.balance || 0))
           }, 0)
         }
       }
@@ -52,19 +64,19 @@ export function StatsProvider({ children }: { children: ReactNode }) {
         const consumptionData = await consumptionResponse.json()
         if (consumptionData.success && consumptionData.data?.records) {
           const records = consumptionData.data.records
-          totalConsumption = records.reduce((sum: number, record: any) => {
-            return sum + parseFloat(record.cost || record.points_used || 0)
+          totalConsumption = records.reduce((sum: number, record: ApiConsumptionRecord) => {
+             return sum + parseFloat(String(record.cost || record.points_used || 0))
           }, 0)
           
           // 计算今日消费
           const today = new Date().toISOString().split('T')[0]
           todayConsumption = records
-            .filter((record: any) => {
+            .filter((record: ApiConsumptionRecord) => {
               const recordDate = new Date(record.created_at).toISOString().split('T')[0]
               return recordDate === today
             })
-            .reduce((sum: number, record: any) => {
-              return sum + parseFloat(record.cost || record.points_used || 0)
+            .reduce((sum: number, record: ApiConsumptionRecord) => {
+               return sum + parseFloat(String(record.cost || record.points_used || 0))
             }, 0)
         }
       }

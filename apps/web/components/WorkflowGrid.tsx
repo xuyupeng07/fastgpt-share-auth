@@ -22,6 +22,12 @@ interface Category {
   sort_order: number
 }
 
+interface ApiCategory {
+  id: string
+  name: string
+  sort_order: number
+}
+
 export function WorkflowGrid({ workflows, onTryWorkflow, onLike, authToken }: WorkflowGridProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('全部')
@@ -39,7 +45,7 @@ export function WorkflowGrid({ workflows, onTryWorkflow, onLike, authToken }: Wo
         
         if (result.success) {
           const allCategory = { id: 'all', name: '全部', sort_order: 0 }
-          const apiCategories = result.data.map((cat: any) => ({
+          const apiCategories = result.data.map((cat: ApiCategory) => ({
             id: cat.id,
             name: cat.name,
             sort_order: cat.sort_order

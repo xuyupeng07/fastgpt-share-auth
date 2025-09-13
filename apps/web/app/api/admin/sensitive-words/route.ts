@@ -12,6 +12,10 @@ interface ISensitiveWord {
   updatedAt: Date;
 }
 
+interface SensitiveWordDocument extends ISensitiveWord {
+  _id: mongoose.Types.ObjectId;
+}
+
 const SensitiveWordSchema = new mongoose.Schema<ISensitiveWord>({
   word: { type: String, required: true, unique: true },
   category: { type: String, required: true },
@@ -53,7 +57,7 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json({ 
       success: true, 
-      data: words.map((word: any) => ({
+      data: words.map((word: SensitiveWordDocument) => ({
         id: word._id.toString(),
         word: word.word,
         category: word.category,

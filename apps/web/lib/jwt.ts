@@ -242,7 +242,7 @@ export function cleanupRateLimit(): void {
 export function getTokenInfo(token: string): TokenPayload | null {
   try {
     return jwt.decode(token) as TokenPayload;
-  } catch (_error) {
+  } catch {
     return null;
   }
 }
@@ -265,7 +265,7 @@ export function isTokenExpiringSoon(
     const threshold = thresholdMinutes * 60;
     
     return (decoded.exp - now) <= threshold;
-  } catch (_error) {
+  } catch {
     return true;
   }
 }

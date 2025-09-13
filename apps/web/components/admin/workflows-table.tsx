@@ -7,10 +7,11 @@ import { Label } from '@workspace/ui/components/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@workspace/ui/components/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@workspace/ui/components/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@workspace/ui/components/dialog';
-import { Plus, Edit, Trash2, ExternalLink, Check, X, Upload, Image as ImageIcon } from 'lucide-react';
+import { Plus, Edit, Trash2, ExternalLink, X, Upload, Image as ImageIcon } from 'lucide-react';
 import Image from 'next/image';
 import { useStats } from '@/contexts/stats-context';
 import { toast } from 'sonner';
+import { AuthUtils } from '@/lib/auth';
 
 // 工作流接口类型
 interface Workflow {
@@ -54,6 +55,7 @@ export default function WorkflowsTable() {
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [authToken, setAuthToken] = useState<string | null>(null);
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingWorkflow, setEditingWorkflow] = useState<Workflow | null>(null);
@@ -67,6 +69,9 @@ export default function WorkflowsTable() {
     point_multiplier: 1
   });
   const [submitting, setSubmitting] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const pageSize = 20;
 
   // 加载工作流列表
   const loadWorkflows = async () => {
@@ -76,7 +81,18 @@ export default function WorkflowsTable() {
       const result = await response.json();
       
       if (result.success) {
-        setWorkflows(result.data);
+        const allWorkflows = result.data || [];
+        
+        // 计算分页
+        const total = allWorkflows.length;
+        setTotalPages(Math.ceil(total / pageSize));
+        
+        // 获取当前页的数据
+        const startIndex = (currentPage - 1) * pageSize;
+        const endIndex = startIndex + pageSize;
+        const paginatedWorkflows = allWorkflows.slice(startIndex, endIndex);
+        
+        setWorkflows(paginatedWorkflows);
       } else {
         toast.error('加载工作流列表失败');
       }
@@ -264,9 +280,9 @@ export default function WorkflowsTable() {
         console.error('删除失败:', error);
         toast.error('删除失败，请重试');
       }
-    } catch (cancelError: any) {
+    } catch (cancelError: unknown) {
       // 用户取消操作，不显示错误信息
-      if (cancelError.message !== '用户取消操作') {
+      if (cancelError instanceof Error && cancelError.message !== '用户取消操作') {
         toast.error('删除失败，请重试');
       }
     }
@@ -281,21 +297,14 @@ export default function WorkflowsTable() {
 
   useEffect(() => {
     loadWorkflows();
-    loadCategories();
-  }, []);
+  }, [currentPage]);
 
-  if (loading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>工作流管理</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8">加载中...</div>
-        </CardContent>
-      </Card>
-    )
-  }
+  useEffect(() => {
+    loadCategories();
+    // 获取authToken
+    const token = AuthUtils.getToken();
+    setAuthToken(token);
+  }, []);
 
   return (
     <Card>
@@ -478,99 +487,142 @@ export default function WorkflowsTable() {
         </div>
       </CardHeader>
       <CardContent>
-
-
         {/* 工作流表格 */}
         <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="pl-6 w-20 text-center">头像</TableHead>
-              <TableHead className="w-40">工作流名称</TableHead>
-              <TableHead className="w-24">分类</TableHead>
-              <TableHead className="w-20 text-center">积分倍率</TableHead>
-              <TableHead className="w-20 text-center">状态</TableHead>
-              <TableHead className="w-36">创建时间</TableHead>
-              <TableHead className="w-28 text-center">操作</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {workflows.length === 0 ? (
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                  暂无工作流数据
-                </TableCell>
+                <TableHead className="pl-6 w-60">工作流名称</TableHead>
+                <TableHead className="w-24">分类</TableHead>
+                <TableHead className="w-20 text-center">积分倍率</TableHead>
+                <TableHead className="w-20 text-center">状态</TableHead>
+                <TableHead className="w-36">创建时间</TableHead>
+                <TableHead className="w-28 text-center">操作</TableHead>
               </TableRow>
-            ) : (
-              workflows.map((workflow) => (
-                <TableRow key={workflow.id}>
-                  <TableCell className="pl-6 text-center">
-                    <div className="flex justify-center">
-                      {workflow.avatar ? (
-                        <Image 
-                          src={workflow.avatar} 
-                          alt={workflow.name}
-                          width={32}
-                          height={32}
-                          className="w-8 h-8 rounded-lg object-contain"
-                        />
-                      ) : (
-                        <div className="w-8 h-8 rounded-lg bg-gray-200 flex items-center justify-center">
-                          <ImageIcon className="w-4 h-4 text-gray-400" />
-                        </div>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell className="font-medium text-foreground">{workflow.name}</TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {workflow.category_name || 
-                      categories.find(cat => cat._id === workflow.category_id)?.name || 
-                      '未分类'
-                    }
-                  </TableCell>
-                  <TableCell className="text-center font-medium">
-                    <span className="inline-flex items-center px-2 py-1 rounded-md text-sm font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
-                      {workflow.point_multiplier}x
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      workflow.status === 'active' 
-                        ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' 
-                        : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'
-                    }`}>
-                      {workflow.status === 'active' ? '启用' : '禁用'}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{formatDate(workflow.created_at)}</TableCell>
-                  <TableCell className="text-center">
-                    <div className="flex justify-center items-center gap-2">
-
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => openEditDialog(workflow)}
-                        title="编辑"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDelete(workflow.id)}
-                        title="删除"
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900"></div>
+                      <span className="text-sm text-muted-foreground">加载中...</span>
                     </div>
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : workflows.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    暂无工作流数据
+                  </TableCell>
+                </TableRow>
+              ) : (
+                workflows.map((workflow) => (
+                  <TableRow key={workflow.id}>
+                    <TableCell className="pl-6">
+                      <div className="flex items-center gap-3">
+                        {workflow.avatar ? (
+                          <Image
+                            src={workflow.avatar}
+                            alt={workflow.name}
+                            width={32}
+                            height={32}
+                            className="rounded-md"
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-md bg-gray-100 flex items-center justify-center">
+                            <ImageIcon className="w-4 h-4 text-gray-400" />
+                          </div>
+                        )}
+                        <span className="font-medium">{workflow.name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {workflow.category_name || '未分类'}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <span className="font-mono text-blue-600 dark:text-blue-400 font-semibold">
+                        {workflow.point_multiplier}x
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        workflow.status === 'active' 
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' 
+                          : 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
+                      }`}>
+                        {workflow.status === 'active' ? '启用' : '禁用'}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      {new Date(workflow.created_at).toLocaleString()}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => openEditDialog(workflow)}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDelete(workflow.id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                        <Button
+                         variant="ghost"
+                         size="icon"
+                         onClick={() => {
+                           // 使用与主页工作流卡片相同的跳转逻辑
+                           if (authToken && workflow.no_login_url) {
+                             const fastgptUrl = `${workflow.no_login_url}&authToken=${authToken}`;
+                             window.open(fastgptUrl, '_blank');
+                           } else {
+                             window.open(workflow.no_login_url, '_blank');
+                           }
+                         }}
+                       >
+                         <ExternalLink className="w-4 h-4" />
+                       </Button>
+                     </div>
+                   </TableCell>
+                 </TableRow>
+               )))
+             }
+           </TableBody>
+         </Table>
         </div>
+        
+        {/* 分页控件 */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-2 py-4">
+            <div className="text-sm text-muted-foreground">
+              第 {currentPage} 页，共 {totalPages} 页
+            </div>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+              >
+                上一页
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+              >
+                下一页
+              </Button>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

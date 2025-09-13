@@ -11,6 +11,7 @@ import { Tooltip } from "@/components/ui/tooltip"
 import { UserDropdown } from "@/components/UserDropdown"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@workspace/ui/components/dialog"
 import { LoginDialog } from "@/components/auth/login-dialog"
+import { AuthUtils } from "@/lib/auth"
 
 interface UserInfo {
   id: string // 添加MongoDB的_id字段
@@ -24,6 +25,12 @@ interface UserInfo {
   avatar?: string
 }
 
+interface ChatMessage {
+  role: string;
+  content: string;
+  timestamp?: string;
+}
+
 interface ConsumptionRecord {
   id: number
   user_id: number
@@ -33,7 +40,7 @@ interface ConsumptionRecord {
   cost: number
   created_at: string
   response_data?: string
-  chat_history?: any[]
+  chat_history?: ChatMessage[]
   appname?: string
 }
 
@@ -55,6 +62,16 @@ export default function ProfilePage() {
   const [showLoginDialog, setShowLoginDialog] = useState(false)
   const [rechargeRecords, setRechargeRecords] = useState<RechargeRecord[]>([])
   const [loading, setLoading] = useState(true)
+  
+  // 消费记录分页状态
+  const [consumptionCurrentPage, setConsumptionCurrentPage] = useState(1)
+  const [consumptionTotalPages, setConsumptionTotalPages] = useState(1)
+  const [consumptionPageSize] = useState(10)
+  
+  // 充值记录分页状态
+  const [rechargeCurrentPage, setRechargeCurrentPage] = useState(1)
+  const [rechargeTotalPages, setRechargeTotalPages] = useState(1)
+  const [rechargePageSize] = useState(10)
 
 
   // 获取最新用户信息
@@ -83,20 +100,14 @@ export default function ProfilePage() {
       } else if (response.status === 403) {
         // 用户账户被禁用，立即清除登录态并重定向到登录页
         console.log('Account disabled, logging out and redirecting to login')
-        localStorage.removeItem('authToken')
-        localStorage.removeItem('userInfo')
-        sessionStorage.clear()
-        // 清除cookie
-        document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+        // 清除登录状态
+        AuthUtils.handleLogout()
         setShowLoginDialog(true)
         return null
       } else if (response.status === 401) {
         // token无效，跳转到登录页
-        localStorage.removeItem('authToken')
-        localStorage.removeItem('userInfo')
-        sessionStorage.clear()
-        // 清除cookie
-        document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+        // 清除登录状态
+        AuthUtils.handleLogout()
         setShowLoginDialog(true)
         return null
       }
@@ -109,43 +120,60 @@ export default function ProfilePage() {
     return null
   }, [])
 
-  const loadUserData = useCallback(async (token: string, currentUserInfo?: UserInfo) => {
+  // 加载消费和充值记录的函数，不依赖refreshUserInfo
+  const loadRecords = useCallback(async (username: string) => {
     try {
-      setLoading(true)
-      
-      // 获取最新用户信息（包括余额）
-      const updatedUserInfo = await refreshUserInfo(token)
-      const userToUse = updatedUserInfo || currentUserInfo
-      
-      // 确保有用户信息后再获取记录
-      if (userToUse?.username) {
-        // 获取消费记录 - 使用username参数
-        const consumptionResponse = await fetch(`/api/consumption/user?username=${userToUse.username}`)
-        if (consumptionResponse.ok) {
-          const consumptionData = await consumptionResponse.json()
-          setConsumptionRecords(consumptionData.data || [])
-        } else {
-          console.error('获取消费记录失败:', consumptionResponse.status)
+      // 获取消费记录 - 使用username参数和分页参数
+      const consumptionResponse = await fetch(`/api/consumption/user?username=${username}&page=${consumptionCurrentPage}&limit=${consumptionPageSize}`)
+      if (consumptionResponse.ok) {
+        const consumptionData = await consumptionResponse.json()
+        if (consumptionData.success && consumptionData.data) {
+          // 检查是否有分页信息
+          if (consumptionData.data.records) {
+            setConsumptionRecords(consumptionData.data.records || [])
+            setConsumptionTotalPages(Math.ceil((consumptionData.data.total || 0) / consumptionPageSize))
+          } else {
+            // 兼容旧格式
+            setConsumptionRecords(consumptionData.data || [])
+            setConsumptionTotalPages(1)
+          }
         }
-        
-        // 获取充值记录 - 使用username参数
-        const rechargeResponse = await fetch(`/api/recharge/user?username=${userToUse.username}`)
-        if (rechargeResponse.ok) {
-          const rechargeData = await rechargeResponse.json()
-          setRechargeRecords(rechargeData.data || [])
-        } else {
-          console.error('获取充值记录失败:', rechargeResponse.status)
+      } else {
+        console.error('获取消费记录失败:', consumptionResponse.status)
+      }
+      
+      // 获取充值记录 - 使用username参数和分页参数
+      const rechargeResponse = await fetch(`/api/recharge/user?username=${username}&page=${rechargeCurrentPage}&limit=${rechargePageSize}`)
+      if (rechargeResponse.ok) {
+        const rechargeData = await rechargeResponse.json()
+        if (rechargeData.success && rechargeData.data) {
+          // 检查是否有分页信息
+          if (rechargeData.data.records) {
+            setRechargeRecords(rechargeData.data.records || [])
+            setRechargeTotalPages(Math.ceil((rechargeData.data.total || 0) / rechargePageSize))
+          } else {
+            // 兼容旧格式
+            setRechargeRecords(rechargeData.data || [])
+            setRechargeTotalPages(1)
+          }
         }
+      } else {
+        console.error('获取充值记录失败:', rechargeResponse.status)
       }
     } catch (error) {
-      console.error('加载用户数据失败:', error)
-    } finally {
-      setLoading(false)
+      console.error('加载记录失败:', error)
     }
-  }, [refreshUserInfo])
+  }, [consumptionCurrentPage, consumptionPageSize, rechargeCurrentPage, rechargePageSize])
 
 
 
+
+  // 监听分页状态变化，重新加载记录
+  useEffect(() => {
+    if (userInfo?.username) {
+      loadRecords(userInfo.username)
+    }
+  }, [consumptionCurrentPage, rechargeCurrentPage, loadRecords, userInfo?.username])
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString('zh-CN')
@@ -167,48 +195,97 @@ export default function ProfilePage() {
     )
   }
 
-  // 在所有函数定义后添加useEffect
-  useEffect(() => {
+  // 初始化认证状态
+  const initializeAuth = useCallback(async () => {
     // 检查登录状态
-    const token = localStorage.getItem("authToken")
-    const user = localStorage.getItem("userInfo")
+    const token = AuthUtils.getToken()
     
-    if (!token || !user) {
+    if (!token) {
       // 未登录，打开登录对话框
       setShowLoginDialog(true)
+      setLoading(false)
       return
     }
     
-    const userInfo = JSON.parse(user)
-    
-    setAuthToken(token)
-    setUserInfo(userInfo)
-    
-    // 加载用户数据
-    loadUserData(token, userInfo)
-    
-    // 监听页面焦点事件，当页面重新获得焦点时刷新用户信息
-    const handleFocus = () => {
-      if (token) {
-        refreshUserInfo(token)
+    // 验证token有效性并获取用户信息
+    try {
+      setLoading(true)
+      const response = await fetch('/api/user/info', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success) {
+          const userInfo = data.data
+          setAuthToken(token)
+          setUserInfo(userInfo)
+          
+          // 更新localStorage中的用户信息
+          localStorage.setItem('userInfo', JSON.stringify(userInfo))
+          
+          // 加载记录数据
+          if (userInfo.username) {
+            await loadRecords(userInfo.username)
+          }
+          return
+        }
       }
+      
+      // token无效，清除登录状态并显示登录对话框
+      AuthUtils.handleLogout()
+      setShowLoginDialog(true)
+    } catch (error) {
+      console.error('验证登录状态失败:', error)
+      // 发生错误时也清除登录状态
+      AuthUtils.handleLogout()
+      setShowLoginDialog(true)
+    } finally {
+      setLoading(false)
+    }
+  }, [loadRecords])
+
+  // 在所有函数定义后添加useEffect
+  useEffect(() => {
+    initializeAuth()
+    
+    let focusTimeout: NodeJS.Timeout
+    let balanceTimeout: NodeJS.Timeout
+    
+    // 监听页面焦点事件，当页面重新获得焦点时刷新用户信息（添加防抖）
+    const handleFocus = () => {
+      clearTimeout(focusTimeout)
+      focusTimeout = setTimeout(() => {
+        const currentToken = AuthUtils.getToken()
+        if (currentToken) {
+          refreshUserInfo(currentToken)
+        }
+      }, 1000) // 1秒防抖
     }
     
-    // 监听全局余额更新事件
+    // 监听全局余额更新事件（添加防抖）
     const handleBalanceUpdate = () => {
-      if (token) {
-        refreshUserInfo(token)
-      }
+      clearTimeout(balanceTimeout)
+      balanceTimeout = setTimeout(() => {
+        const currentToken = AuthUtils.getToken()
+        if (currentToken) {
+          refreshUserInfo(currentToken)
+        }
+      }, 500) // 0.5秒防抖
     }
     
     window.addEventListener('focus', handleFocus)
     window.addEventListener('balanceUpdated', handleBalanceUpdate)
     
     return () => {
+      clearTimeout(focusTimeout)
+      clearTimeout(balanceTimeout)
       window.removeEventListener('focus', handleFocus)
       window.removeEventListener('balanceUpdated', handleBalanceUpdate)
     }
-  }, [loadUserData, refreshUserInfo])
+  }, [initializeAuth, refreshUserInfo])
 
   if (!userInfo) {
     return (
@@ -231,10 +308,8 @@ export default function ProfilePage() {
             <UserDropdown 
               userInfo={userInfo} 
               onLogout={() => {
-                localStorage.removeItem('authToken')
-                localStorage.removeItem('userInfo')
-                sessionStorage.clear()
-                document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+                // 清除登录状态
+                AuthUtils.handleLogout()
                 window.location.href = '/'
               }}
               showHomeButton={true}
@@ -356,39 +431,68 @@ export default function ProfilePage() {
                     <p className="text-muted-foreground">暂无消费记录</p>
                   </div>
                 ) : (
-                  <div className="rounded-md border">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="text-left">对话ID</TableHead>
-                          <TableHead className="text-left">工作流名称</TableHead>
-                          <TableHead className="text-center">Token使用</TableHead>
-                          <TableHead className="text-center">消费金额</TableHead>
-                          <TableHead className="text-left">消费时间</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {consumptionRecords.map((record) => (
-                          <TableRow key={record.id}>
-                            <TableCell className="text-left font-mono text-sm text-muted-foreground">{record.id}</TableCell>
-                            <TableCell className="text-left font-medium text-primary">
-                              {record.appname || '未知工作流'}
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <span className="font-mono text-blue-600 dark:text-blue-400 font-semibold">
-                                {(record.token_used || 0).toLocaleString()}
-                              </span>
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <span className="font-semibold text-red-600 dark:text-red-400">
-                                ¥{(parseFloat(record.cost?.toString() || '0')).toFixed(4)}
-                              </span>
-                            </TableCell>
-                            <TableCell className="text-left text-sm text-muted-foreground">{formatDate(record.created_at)}</TableCell>
+                  <div>
+                    <div className="rounded-md border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="text-left">对话ID</TableHead>
+                            <TableHead className="text-left">工作流名称</TableHead>
+                            <TableHead className="text-center">Token使用</TableHead>
+                            <TableHead className="text-center">消费金额</TableHead>
+                            <TableHead className="text-left">消费时间</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                        </TableHeader>
+                        <TableBody>
+                          {consumptionRecords.map((record) => (
+                            <TableRow key={record.id}>
+                              <TableCell className="text-left font-mono text-sm text-muted-foreground">{record.id}</TableCell>
+                              <TableCell className="text-left font-medium text-primary">
+                                {record.appname || '未知工作流'}
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <span className="font-mono text-blue-600 dark:text-blue-400 font-semibold">
+                                  {(record.token_used || 0).toLocaleString()}
+                                </span>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <span className="font-semibold text-red-600 dark:text-red-400">
+                                  ¥{(parseFloat(record.cost?.toString() || '0')).toFixed(4)}
+                                </span>
+                              </TableCell>
+                              <TableCell className="text-left text-sm text-muted-foreground">{formatDate(record.created_at)}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                    
+                    {/* 消费记录分页控件 */}
+                    {consumptionTotalPages > 1 && (
+                      <div className="flex items-center justify-between mt-4">
+                        <div className="text-sm text-muted-foreground">
+                          第 {consumptionCurrentPage} 页，共 {consumptionTotalPages} 页
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setConsumptionCurrentPage(Math.max(1, consumptionCurrentPage - 1))}
+                            disabled={consumptionCurrentPage === 1}
+                          >
+                            上一页
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setConsumptionCurrentPage(Math.min(consumptionTotalPages, consumptionCurrentPage + 1))}
+                            disabled={consumptionCurrentPage === consumptionTotalPages}
+                          >
+                            下一页
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </TabsContent>
@@ -404,37 +508,66 @@ export default function ProfilePage() {
                     <p className="text-muted-foreground">暂无充值记录</p>
                   </div>
                 ) : (
-                  <div className="rounded-md border">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="text-left">订单ID</TableHead>
-                          <TableHead className="text-center">充值金额</TableHead>
-                          <TableHead className="text-center">充值后余额</TableHead>
-                          <TableHead className="text-left">充值时间</TableHead>
-                          <TableHead className="text-left">备注</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {rechargeRecords.map((record) => (
-                          <TableRow key={record.id}>
-                            <TableCell className="text-left font-mono text-sm text-muted-foreground">{record.id}</TableCell>
-                            <TableCell className="text-center">
-                              <span className="font-semibold text-green-600 dark:text-green-400">
-                                +¥{parseFloat(record.amount?.toString() || '0').toFixed(2)}
-                              </span>
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <span className="font-semibold text-blue-600 dark:text-blue-400">
-                                ¥{parseFloat(record.balance_after?.toString() || '0').toFixed(2)}
-                              </span>
-                            </TableCell>
-                            <TableCell className="text-left text-sm text-muted-foreground">{formatDate(record.created_at)}</TableCell>
-                            <TableCell className="text-left text-sm text-muted-foreground max-w-32 truncate" title={record.remark || '-'}>{record.remark || '-'}</TableCell>
+                  <div>
+                    <div className="rounded-md border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="text-left">订单ID</TableHead>
+                            <TableHead className="text-center">充值金额</TableHead>
+                            <TableHead className="text-center">充值后余额</TableHead>
+                            <TableHead className="text-left">充值时间</TableHead>
+                            <TableHead className="text-left">备注</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                        </TableHeader>
+                        <TableBody>
+                          {rechargeRecords.map((record) => (
+                            <TableRow key={record.id}>
+                              <TableCell className="text-left font-mono text-sm text-muted-foreground">{record.id}</TableCell>
+                              <TableCell className="text-center">
+                                <span className="font-semibold text-green-600 dark:text-green-400">
+                                  +¥{parseFloat(record.amount?.toString() || '0').toFixed(2)}
+                                </span>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <span className="font-semibold text-blue-600 dark:text-blue-400">
+                                  ¥{parseFloat(record.balance_after?.toString() || '0').toFixed(2)}
+                                </span>
+                              </TableCell>
+                              <TableCell className="text-left text-sm text-muted-foreground">{formatDate(record.created_at)}</TableCell>
+                              <TableCell className="text-left text-sm text-muted-foreground max-w-32 truncate" title={record.remark || '-'}>{record.remark || '-'}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                    
+                    {/* 充值记录分页控件 */}
+                    {rechargeTotalPages > 1 && (
+                      <div className="flex items-center justify-between mt-4">
+                        <div className="text-sm text-muted-foreground">
+                          第 {rechargeCurrentPage} 页，共 {rechargeTotalPages} 页
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setRechargeCurrentPage(Math.max(1, rechargeCurrentPage - 1))}
+                            disabled={rechargeCurrentPage === 1}
+                          >
+                            上一页
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setRechargeCurrentPage(Math.min(rechargeTotalPages, rechargeCurrentPage + 1))}
+                            disabled={rechargeCurrentPage === rechargeTotalPages}
+                          >
+                            下一页
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </TabsContent>
@@ -448,7 +581,7 @@ export default function ProfilePage() {
         onOpenChange={setShowLoginDialog}
         onSuccess={() => {
           setShowLoginDialog(false)
-          window.location.reload()
+          initializeAuth()
         }}
       />
     </div>

@@ -9,6 +9,7 @@ import { Input } from "@workspace/ui/components/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui/components/select"
 import { useStats } from "@/contexts/stats-context"
 import { toast } from "sonner"
+import { AuthUtils } from "@/lib/auth"
 
 interface RechargeRecord {
   id: number
@@ -25,6 +26,17 @@ interface User {
   id: string
   username: string
   balance: number
+}
+
+interface ApiRechargeRecord {
+  id: number;
+  username?: string;
+  amount: string | number;
+  balance_before: string | number;
+  balance_after: string | number;
+  created_at: string;
+  remark?: string;
+  [key: string]: unknown;
 }
 
 export function RechargeTable() {
@@ -63,18 +75,7 @@ export function RechargeTable() {
   const debouncedSearchId = useDebounce(searchId, 300)
   const debouncedSearchUsername = useDebounce(searchUsername, 300)
 
-  useEffect(() => {
-    fetchRechargeRecords()
-    fetchUsers()
-  }, [currentPage])
-
-  // 监听防抖后的搜索值变化，实现实时搜索
-  useEffect(() => {
-    setCurrentPage(1)
-    fetchRechargeRecords()
-  }, [debouncedSearchId, debouncedSearchUsername, searchType])
-
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       setLoadingUsers(true)
       const response = await fetch('/api/users')
@@ -88,9 +89,9 @@ export function RechargeTable() {
     } finally {
       setLoadingUsers(false)
     }
-  }
+  }, [])
 
-  const fetchRechargeRecords = async () => {
+  const fetchRechargeRecords = useCallback(async () => {
     try {
       setLoading(true)
       let url = '/api/recharge/records'
@@ -115,24 +116,24 @@ export function RechargeTable() {
         // 适配新的API返回格式
         if (data.data.records) {
           // 新格式：服务端分页
-          const recordsWithStatus = data.data.records.map((record: any) => ({
+          const recordsWithStatus = data.data.records.map((record: ApiRechargeRecord) => ({
             ...record,
             status: 'success' as const,
-            amount: parseFloat(record.amount) || 0,
-            balance_before: parseFloat(record.balance_before) || 0,
-            balance_after: parseFloat(record.balance_after) || 0
+            amount: parseFloat(String(record.amount)) || 0,
+            balance_before: parseFloat(String(record.balance_before)) || 0,
+            balance_after: parseFloat(String(record.balance_after)) || 0
           }))
           setRecords(recordsWithStatus)
           setTotalPages(Math.ceil((data.data.total || 0) / pageSize))
         } else {
           // 兼容旧格式：客户端分页
           const allRecords = data.data || []
-          const recordsWithStatus = allRecords.map((record: any) => ({
+          const recordsWithStatus = allRecords.map((record: ApiRechargeRecord) => ({
             ...record,
             status: 'success' as const,
-            amount: parseFloat(record.amount) || 0,
-            balance_before: parseFloat(record.balance_before) || 0,
-            balance_after: parseFloat(record.balance_after) || 0
+            amount: parseFloat(String(record.amount)) || 0,
+            balance_before: parseFloat(String(record.balance_before)) || 0,
+            balance_after: parseFloat(String(record.balance_after)) || 0
           }))
           
           // 分页处理
@@ -154,7 +155,17 @@ export function RechargeTable() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [currentPage, pageSize, debouncedSearchId, debouncedSearchUsername, searchType])
+
+  useEffect(() => {
+    fetchRechargeRecords()
+    fetchUsers()
+  }, [currentPage, debouncedSearchId, debouncedSearchUsername, searchType])
+
+  // 搜索时重置到第一页
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [debouncedSearchId, debouncedSearchUsername, searchType])
 
   const handleRecharge = async () => {
     if (!newRecharge.userId || !newRecharge.amount || newRecharge.userId === 'loading' || newRecharge.userId === 'no-users') {
@@ -164,10 +175,18 @@ export function RechargeTable() {
 
     try {
       setIsAdding(true)
+      const token = AuthUtils.getToken()
+      if (!token) {
+        toast.error('未登录，请先登录')
+        setIsAdding(false)
+        return
+      }
+
       const response = await fetch('/api/recharge', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           userId: newRecharge.userId,
@@ -224,18 +243,7 @@ export function RechargeTable() {
     }
   }
 
-  if (loading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>充值记录</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8">加载中...</div>
-        </CardContent>
-      </Card>
-    )
-  }
+
 
   return (
     <Card>
@@ -330,15 +338,24 @@ export function RechargeTable() {
                 <TableHead className="text-center">充值金额</TableHead>
                 <TableHead className="text-center">充值前余额</TableHead>
                 <TableHead className="text-center">充值后余额</TableHead>
+                <TableHead className="text-left">状态</TableHead>
                 <TableHead className="text-left">时间</TableHead>
-                <TableHead className="text-left">备注</TableHead>
-                <TableHead className="text-center">操作</TableHead>
+                <TableHead className="text-center">备注</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {records.length === 0 ? (
+              {loading ? (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center py-8">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900"></div>
+                      <span className="text-sm text-muted-foreground">加载中...</span>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : records.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                     {searchId || searchUsername ? '未找到相关充值记录' : '暂无充值记录'}
                   </TableCell>
                 </TableRow>

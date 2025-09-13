@@ -4,10 +4,10 @@ import UserModel from '@/lib/models/User'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { userId: string } }
+  context: { params: Promise<{ userId: string }> }
 ) {
   try {
-    const { userId } = params
+    const { userId } = await context.params
 
     if (!userId) {
       return new NextResponse('用户ID不能为空', { status: 400 })

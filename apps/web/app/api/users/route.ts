@@ -1,45 +1,31 @@
 import { NextResponse } from "next/server"
-import { getAllUsers, getUserById, deleteUser } from '@/lib/db'
+import { getUsersWithPagination, getUserById, deleteUser } from '@/lib/db'
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const searchId = searchParams.get('searchId');
-    const searchUsername = searchParams.get('searchUsername');
+    const searchId = searchParams.get('searchId') || '';
+    const searchUsername = searchParams.get('searchUsername') || '';
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
     
-    const records = await getAllUsers();
-    const recordsArray = Array.isArray(records) ? records : [];
+    // 使用新的分页函数
+    const { users, total } = await getUsersWithPagination({
+      page,
+      limit,
+      searchId,
+      searchUsername
+    });
     
     // 确保每个用户都有id字段
-    let usersWithId = recordsArray.map(user => ({
+    const usersWithId = users.map(user => ({
       ...user,
       id: user._id.toString() // 添加MongoDB的_id字段作为id
     }));
     
-    // 应用搜索过滤
-    if (searchId) {
-      usersWithId = usersWithId.filter(user => 
-        user.id.toString().includes(searchId)
-      );
-    } else if (searchUsername) {
-      usersWithId = usersWithId.filter(user => 
-        user.username && user.username.toLowerCase().includes(searchUsername.toLowerCase())
-      );
-    }
-    
-    // 计算总数
-    const total = usersWithId.length;
-    
-    // 应用分页
-    const startIndex = (page - 1) * limit;
-    const endIndex = startIndex + limit;
-    const paginatedUsers = usersWithId.slice(startIndex, endIndex);
-    
     return NextResponse.json({
       success: true,
-      users: paginatedUsers,
+      users: usersWithId,
       total: total
     });
   } catch (error) {

@@ -3,6 +3,14 @@ import connectDB from '@/lib/mongodb'
 import UserModel from '@/lib/models/User'
 import jwt from 'jsonwebtoken'
 
+interface JWTPayload {
+  userId: string;
+  username: string;
+  isAdmin?: boolean;
+  iat?: number;
+  exp?: number;
+}
+
 const JWT_SECRET = process.env.JWT_SECRET || 'your-jwt-secret-key-here'
 
 export async function POST(request: NextRequest) {
@@ -17,11 +25,11 @@ export async function POST(request: NextRequest) {
     }
 
     const token = authHeader.substring(7)
-    let decoded: any
+    let decoded: JWTPayload
 
     try {
-      decoded = jwt.verify(token, JWT_SECRET)
-    } catch (error) {
+      decoded = jwt.verify(token, JWT_SECRET) as JWTPayload
+    } catch {
       return NextResponse.json(
         { success: false, message: '无效的认证令牌' },
         { status: 401 }
@@ -101,11 +109,11 @@ export async function GET(request: NextRequest) {
     }
 
     const token = authHeader.substring(7)
-    let decoded: any
+    let decoded: JWTPayload
 
     try {
-      decoded = jwt.verify(token, JWT_SECRET)
-    } catch (error) {
+      decoded = jwt.verify(token, JWT_SECRET) as JWTPayload
+    } catch {
       return NextResponse.json(
         { success: false, message: '无效的认证令牌' },
         { status: 401 }

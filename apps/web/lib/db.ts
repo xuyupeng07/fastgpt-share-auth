@@ -5,7 +5,23 @@ import RechargeRecordModel from './models/RechargeRecord';
 import WorkflowModel from './models/Workflow';
 import WorkflowCategoryModel from './models/WorkflowCategory';
 import bcrypt from 'bcryptjs';
-import type { IUser, IConsumptionRecord, IRechargeRecord, IWorkflow, IWorkflowCategory } from './models';
+// import type { IUser, IConsumptionRecord, IRechargeRecord, IWorkflow } from './models';
+import type { ClientSession } from 'mongoose';
+
+interface ConsumptionResponseData {
+  [key: string]: unknown;
+}
+
+interface WorkflowUpdateData {
+  name: string;
+  description: string;
+  no_login_url: string;
+  status: 'active' | 'inactive';
+  category_id?: string;
+  avatar?: string;
+  point_multiplier?: number;
+  updated_at: Date;
+}
 
 // 确保数据库连接
 async function ensureConnection() {
@@ -34,7 +50,7 @@ export async function authenticateUser(username: string, password: string) {
     }
     
     // 返回用户信息（不包含密码），确保包含id字段
-    const { password: _, ...userWithoutPassword } = user;
+    const { password: userPassword, ...userWithoutPassword } = user;
     return {
       ...userWithoutPassword,
       id: user._id.toString() // 确保id字段存在
@@ -81,6 +97,58 @@ export async function getAllUsers() {
   }
 }
 
+// 获取用户列表（支持分页和搜索）
+export async function getUsersWithPagination({
+  page = 1,
+  limit = 10,
+  searchId = '',
+  searchUsername = ''
+}: {
+  page?: number;
+  limit?: number;
+  searchId?: string;
+  searchUsername?: string;
+}) {
+  try {
+    await ensureConnection();
+    
+    // 构建查询条件
+    const query: any = {};
+    
+    if (searchId) {
+      // 搜索ID（MongoDB ObjectId）
+      if (/^[0-9a-fA-F]{24}$/.test(searchId)) {
+        query._id = searchId;
+      } else {
+        // 如果不是有效的ObjectId，返回空结果
+        return { users: [], total: 0 };
+      }
+    } else if (searchUsername) {
+      // 搜索用户名（模糊匹配）
+      query.username = { $regex: searchUsername, $options: 'i' };
+    }
+    
+    // 计算跳过的记录数
+    const skip = (page - 1) * limit;
+    
+    // 并行执行查询和计数
+    const [users, total] = await Promise.all([
+      UserModel.find(query)
+        .select('_id username email balance status is_admin created_at')
+        .sort({ created_at: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      UserModel.countDocuments(query)
+    ]);
+    
+    return { users, total };
+  } catch (error) {
+    console.error('获取用户列表失败:', error);
+    return { users: [], total: 0 };
+  }
+}
+
 // 更新用户状态
 export async function updateUserStatus(userId: string | number, status: 'active' | 'inactive') {
   try {
@@ -101,7 +169,7 @@ export async function updateUserStatus(userId: string | number, status: 'active'
 // 请使用updateUserBalanceById函数通过用户ID更新余额
 
 // 更新用户余额（通过用户ID）
-export async function updateUserBalanceById(userId: string | number, newBalance: number, session?: any) {
+export async function updateUserBalanceById(userId: string | number, newBalance: number, session?: ClientSession) {
   try {
     await ensureConnection();
     const result = await UserModel.findByIdAndUpdate(
@@ -123,8 +191,8 @@ export async function addConsumptionRecord(
   tokenUsed: number,
   pointsUsed: number,
   cost: number,
-  responseData?: any,
-  session?: any,
+  responseData?: ConsumptionResponseData,
+  session?: ClientSession,
   token?: string,
   appname?: string
 ) {
@@ -163,11 +231,77 @@ export async function getAllConsumptionRecords() {
     return records.map(record => ({
       ...record,
       id: record._id,
-      username: record.username || (record.user_id as any)?.username
+      username: record.username || (record.user_id as { username?: string })?.username
     }));
   } catch (error) {
     console.error('获取消费记录失败:', error);
     return [];
+  }
+}
+
+// 获取消费记录（支持分页和搜索）
+export async function getConsumptionRecordsWithPagination({
+  page = 1,
+  limit = 10,
+  searchUserId = '',
+  searchUsername = ''
+}: {
+  page?: number;
+  limit?: number;
+  searchUserId?: string;
+  searchUsername?: string;
+}) {
+  try {
+    await ensureConnection();
+    
+    // 构建查询条件
+    let query: any = {};
+    
+    if (searchUserId) {
+      // 搜索用户ID
+      if (/^[0-9a-fA-F]{24}$/.test(searchUserId)) {
+        query.user_id = searchUserId;
+      } else {
+        return { records: [], total: 0 };
+      }
+    } else if (searchUsername) {
+      // 如果搜索用户名，需要先查找用户
+      const users = await UserModel.find({
+        username: { $regex: searchUsername, $options: 'i' }
+      }).select('_id').lean();
+      
+      if (users.length === 0) {
+        return { records: [], total: 0 };
+      }
+      
+      query.user_id = { $in: users.map(u => u._id) };
+    }
+    
+    // 计算跳过的记录数
+    const skip = (page - 1) * limit;
+    
+    // 并行执行查询和计数
+    const [records, total] = await Promise.all([
+      ConsumptionRecordModel.find(query)
+        .populate('user_id', 'username email')
+        .sort({ created_at: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      ConsumptionRecordModel.countDocuments(query)
+    ]);
+    
+    // 格式化数据以兼容现有API
+    const formattedRecords = records.map(record => ({
+      ...record,
+      id: record._id,
+      username: record.username || (record.user_id as { username?: string })?.username
+    }));
+    
+    return { records: formattedRecords, total };
+  } catch (error) {
+    console.error('获取消费记录失败:', error);
+    return { records: [], total: 0 };
   }
 }
 
@@ -208,8 +342,8 @@ export async function getConsumptionRecordDetail(id: string | number) {
     return {
       ...record,
       id: record._id,
-      username: record.username || (record.user_id as any)?.username,
-      email: (record.user_id as any)?.email
+      username: record.username || (record.user_id as { username?: string })?.username,
+      email: (record.user_id as { email?: string })?.email
     };
   } catch (error) {
     console.error('获取消费记录详情失败:', error);
@@ -257,11 +391,77 @@ export async function getAllRechargeRecords() {
     return records.map(record => ({
       ...record,
       id: record._id,
-      username: record.username || (record.user_id as any)?.username
+      username: record.username || (record.user_id as { username?: string })?.username
     }));
   } catch (error) {
     console.error('获取充值记录失败:', error);
     return [];
+  }
+}
+
+// 获取充值记录（支持分页和搜索）
+export async function getRechargeRecordsWithPagination({
+  page = 1,
+  limit = 10,
+  searchUserId = '',
+  searchUsername = ''
+}: {
+  page?: number;
+  limit?: number;
+  searchUserId?: string;
+  searchUsername?: string;
+}) {
+  try {
+    await ensureConnection();
+    
+    // 构建查询条件
+    let query: any = {};
+    
+    if (searchUserId) {
+      // 搜索用户ID
+      if (/^[0-9a-fA-F]{24}$/.test(searchUserId)) {
+        query.user_id = searchUserId;
+      } else {
+        return { records: [], total: 0 };
+      }
+    } else if (searchUsername) {
+      // 如果搜索用户名，需要先查找用户
+      const users = await UserModel.find({
+        username: { $regex: searchUsername, $options: 'i' }
+      }).select('_id').lean();
+      
+      if (users.length === 0) {
+        return { records: [], total: 0 };
+      }
+      
+      query.user_id = { $in: users.map(u => u._id) };
+    }
+    
+    // 计算跳过的记录数
+    const skip = (page - 1) * limit;
+    
+    // 并行执行查询和计数
+    const [records, total] = await Promise.all([
+      RechargeRecordModel.find(query)
+        .populate('user_id', 'username email')
+        .sort({ created_at: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      RechargeRecordModel.countDocuments(query)
+    ]);
+    
+    // 格式化数据以兼容现有API
+    const formattedRecords = records.map(record => ({
+      ...record,
+      id: record._id,
+      username: record.username || (record.user_id as { username?: string })?.username
+    }));
+    
+    return { records: formattedRecords, total };
+  } catch (error) {
+    console.error('获取充值记录失败:', error);
+    return { records: [], total: 0 };
   }
 }
 
@@ -281,7 +481,7 @@ export async function getRechargeRecordsByUsername(username: string) {
     return records.map(record => ({
       ...record,
       id: record._id,
-      username: record.username || (record.user_id as any)?.username
+      username: record.username || (record.user_id as { username?: string })?.username
     }));
   } catch (error) {
     console.error('获取用户充值记录失败:', error);
@@ -303,7 +503,7 @@ export async function getAllWorkflows() {
     return workflows.map(workflow => ({
       ...workflow,
       id: workflow._id.toString(), // 确保ID是字符串格式
-      category_name: workflow.category_id ? (workflow.category_id as any).name : '未分类' // 添加category_name字段供前端使用
+      category_name: workflow.category_id ? (workflow.category_id as { name?: string }).name : '未分类' // 添加category_name字段供前端使用
     }));
   } catch (error) {
     console.error('获取工作流列表失败:', error);
@@ -409,7 +609,7 @@ export async function updateWorkflow(
 ) {
   try {
     await ensureConnection();
-    const updateData: any = {
+    const updateData: WorkflowUpdateData = {
       name,
       description,
       no_login_url: noLoginUrl,
@@ -474,7 +674,7 @@ export async function updateWorkflowStatus(id: string | number, status: 'active'
 export async function getAllWorkflowCategories() {
   try {
     await ensureConnection();
-    const categories = await WorkflowCategoryModel.find({ status: 'active' })
+    const categories = await WorkflowCategoryModel.find({})
       .sort({ sort_order: 1, created_at: 1 })
       .lean();
     

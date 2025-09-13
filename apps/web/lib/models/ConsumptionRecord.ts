@@ -1,5 +1,9 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
+export interface ResponseData {
+  [key: string]: unknown;
+}
+
 export interface IConsumptionRecord extends Document {
   _id: mongoose.Types.ObjectId;
   user_id: mongoose.Types.ObjectId;
@@ -8,7 +12,7 @@ export interface IConsumptionRecord extends Document {
   token_used: number;
   points_used: number;
   cost: number;
-  response_data?: any;
+  response_data?: ResponseData;
   appname?: string;
   created_at: Date;
   updated_at: Date;

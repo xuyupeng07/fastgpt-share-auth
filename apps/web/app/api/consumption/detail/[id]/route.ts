@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { getConsumptionRecordDetail } from '@/lib/db'
 
 export async function GET(
-  request: NextRequest,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -169,7 +169,7 @@ export async function GET(
         // 如果以上方法都没有找到聊天记录，尝试解析纯文本格式
         if (chatHistory.length === 0 && record.response_data) {
           try {
-            let textData = typeof record.response_data === 'string' ? record.response_data : JSON.stringify(record.response_data)
+            const textData = typeof record.response_data === 'string' ? record.response_data : JSON.stringify(record.response_data)
             
             // 尝试从文本中提取聊天记录
             const chatPattern = /(用户|AI助手)\s*([\s\S]*?)(?=(?:用户|AI助手)|$)/g
